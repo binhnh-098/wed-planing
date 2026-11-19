@@ -22,9 +22,9 @@ import {
 } from '../components/Icons';
 
 const RISK_META = {
-  overdue: { label: 'Quá hạn', className: 'badge-danger' },
-  at_risk: { label: 'Có nguy cơ trễ', className: 'badge-amber' },
-  on_track: { label: 'Đúng tiến độ', className: 'badge-sage' },
+  overdue: { label: 'Quá hạn', className: 'badge-danger', colorVar: 'danger-text' },
+  at_risk: { label: 'Có nguy cơ trễ', className: 'badge-amber', colorVar: 'amber-text' },
+  on_track: { label: 'Đúng tiến độ', className: 'badge-sage', colorVar: 'sage-text' },
 };
 
 const SIDE_META = {
@@ -843,7 +843,11 @@ export default function WeddingDetail() {
                 const expanded = Boolean(expandedTasks[t.id]);
 
                 return (
-                  <div key={t.id} className="task-row-group">
+                  <div
+                    key={t.id}
+                    className={`task-row-group ${t.status === 'DONE' ? 'is-done' : ''}`}
+                    style={{ '--risk-color': riskMeta ? `var(--${riskMeta.colorVar})` : 'transparent' }}
+                  >
                     <div className="task-row">
                       <div className="task-left">
                         <button
@@ -854,98 +858,91 @@ export default function WeddingDetail() {
                         >
                           {t.status === 'DONE' && <CheckIcon size={13} />}
                         </button>
-                        <div style={{ flex: 1 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             <span className={`task-title ${t.status === 'DONE' ? 'done' : ''}`}>{t.title}</span>
                             {riskMeta && <span className={`badge ${riskMeta.className}`}>{riskMeta.label}</span>}
                           </div>
-                          {t.dueDate && (
-                            <div
-                              style={{
-                                fontSize: 12,
-                                marginTop: 2,
-                                color: overdue ? 'var(--danger-text)' : 'var(--text-muted)',
-                                fontWeight: overdue ? 600 : 400,
-                              }}
-                            >
-                              Hạn: {formatDate(t.dueDate)}
-                              <span style={{ marginLeft: 5, color: '#9d6728' }}>
-                                ({getShortLunarDate(t.dueDate)})
+                          <div className="task-meta-row">
+                            {t.dueDate && (
+                              <span className={`due-chip ${overdue ? 'overdue' : ''}`}>
+                                <CalendarIcon size={12} />
+                                {formatDate(t.dueDate)}
+                                <span className="due-chip-lunar">({getShortLunarDate(t.dueDate)})</span>
                               </span>
-                              {overdue ? ' • Quá hạn' : ''}
-                            </div>
-                          )}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                            <div className="progress-track" style={{ width: 120, height: 6 }}>
-                              <div
-                                className="progress-fill progress-fill-sage"
-                                style={{ width: `${t.progress || 0}%` }}
+                            )}
+                            <div className="task-progress">
+                              <div className="progress-track">
+                                <div
+                                  className="progress-fill progress-fill-sage"
+                                  style={{ width: `${t.progress || 0}%` }}
+                                />
+                              </div>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                step="5"
+                                value={t.progress || 0}
+                                onChange={(e) => handleProgressChange(t.id, e.target.value)}
+                                title="Cập nhật tiến độ"
                               />
+                              <span className="task-progress-label">{t.progress || 0}%</span>
                             </div>
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              step="5"
-                              value={t.progress || 0}
-                              onChange={(e) => handleProgressChange(t.id, e.target.value)}
-                              style={{ width: 90 }}
-                              title="Cập nhật tiến độ"
-                            />
-                            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.progress || 0}%</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="task-right">
-                        <select
-                          className={`inline-select ${SIDE_META[t.assignedSide || 'COMMON'].select}`}
-                          value={t.assignedSide || 'COMMON'}
-                          onChange={(e) => handleAssignedSideChange(t.id, e.target.value)}
-                          title="Gán cho cô dâu / chú rể / việc chung"
-                        >
-                          {Object.entries(SIDE_META).map(([key, meta]) => (
-                            <option key={key} value={key}>
-                              {meta.label}
-                            </option>
-                          ))}
-                        </select>
-                        <VendorAssignmentBadge
-                          task={t}
-                          wedding={wedding}
-                          weddingVendors={wedding.vendorLinks || []}
-                          allVendors={vendors}
-                          onAssigned={load}
-                        />
-                        <select
-                          className={`inline-select ${stMeta.select}`}
-                          value={t.status}
-                          onChange={(e) => updateTaskStatus(t.id, e.target.value)}
-                        >
-                          {Object.entries(TASK_STATUS_MAP).map(([key, meta]) => (
-                            <option key={key} value={key}>
-                              {meta.label}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => toggleExpanded(t.id)}
-                        >
-                          <span>
-                            {expanded ? '▾' : '▸'} Việc con{subtasks.length ? ` (${doneSubtasks}/${subtasks.length})` : ''}
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-icon"
-                          onClick={() => openEditTask(t)}
-                          title="Sửa công việc"
-                        >
-                          <EditIcon size={14} />
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-icon task-edit-btn"
+                        onClick={() => openEditTask(t)}
+                        title="Sửa công việc"
+                      >
+                        <EditIcon size={14} />
+                      </button>
+                    </div>
+
+                    <div className="task-toolbar">
+                      <select
+                        className={`inline-select ${SIDE_META[t.assignedSide || 'COMMON'].select}`}
+                        value={t.assignedSide || 'COMMON'}
+                        onChange={(e) => handleAssignedSideChange(t.id, e.target.value)}
+                        title="Gán cho cô dâu / chú rể / việc chung"
+                      >
+                        {Object.entries(SIDE_META).map(([key, meta]) => (
+                          <option key={key} value={key}>
+                            {meta.label}
+                          </option>
+                        ))}
+                      </select>
+                      <VendorAssignmentBadge
+                        task={t}
+                        wedding={wedding}
+                        weddingVendors={wedding.vendorLinks || []}
+                        allVendors={vendors}
+                        onAssigned={load}
+                      />
+                      <select
+                        className={`inline-select ${stMeta.select}`}
+                        value={t.status}
+                        onChange={(e) => updateTaskStatus(t.id, e.target.value)}
+                      >
+                        {Object.entries(TASK_STATUS_MAP).map(([key, meta]) => (
+                          <option key={key} value={key}>
+                            {meta.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm subtask-toggle-btn"
+                        onClick={() => toggleExpanded(t.id)}
+                      >
+                        <span>
+                          {expanded ? '▾' : '▸'} Việc con{subtasks.length ? ` (${doneSubtasks}/${subtasks.length})` : ''}
+                        </span>
+                      </button>
                     </div>
 
                     {expanded && (
