@@ -1,3 +1,5 @@
+import { getLunarDateString, getShortLunarDate } from './lunar';
+
 export const WEDDING_STATUS_MAP = {
   LEAD: { label: 'Tiềm năng', badge: 'badge-rose', select: 'inline-select-rose' },
   PLANNING: { label: 'Đang lập kế hoạch', badge: 'badge-amber', select: 'inline-select-amber' },
@@ -24,6 +26,25 @@ export const ROLE_LABEL_MAP = {
   STAFF: 'Nhân viên',
   CLIENT: 'Cặp đôi',
 };
+
+/**
+ * Format raw number/string to thousand separated VND string e.g. "200.000.000"
+ */
+export function formatNumberWithDots(val) {
+  if (val === null || val === undefined || val === '') return '';
+  const clean = String(val).replace(/\D/g, '');
+  if (!clean) return '';
+  return Number(clean).toLocaleString('vi-VN');
+}
+
+/**
+ * Parse thousand separated VND string back to raw number e.g. "200.000.000" -> 200000000
+ */
+export function parseNumberFromDots(val) {
+  if (!val) return '';
+  const clean = String(val).replace(/\D/g, '');
+  return clean ? Number(clean) : '';
+}
 
 export function formatCurrency(value) {
   const num = Number(value || 0);
@@ -98,3 +119,5 @@ export function getInitials(name) {
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
+
+export { getLunarDateString, getShortLunarDate };

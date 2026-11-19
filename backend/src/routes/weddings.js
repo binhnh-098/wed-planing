@@ -3,6 +3,7 @@ const { z } = require('zod');
 const prisma = require('../prismaClient');
 const { requireAuth } = require('../middleware/auth');
 const { buildTimelineTasks } = require('../timelineTemplate');
+const { assessTaskRisk } = require('../taskRisk');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -55,10 +56,25 @@ router.post('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const wedding = await prisma.wedding.findFirst({
     where: { id: Number(req.params.id), organizationId: req.user.organizationId },
-    include: { tasks: true, budgetItems: true, guests: true },
+    include: {
+      tasks: {
+        where: { parentTaskId: null },
+        include: { subtasks: { include: { vendor: true, assignee: true } }, vendor: true, assignee: true },
+        orderBy: { dueDate: 'asc' },
+      },
+      budgetItems: true,
+      guests: true,
+    },
   });
   if (!wedding) return res.status(404).json({ error: 'Not found' });
-  res.json(wedding);
+
+  const tasks = wedding.tasks.map((task) => ({
+    ...task,
+    risk: assessTaskRisk(task),
+    subtasks: task.subtasks.map((sub) => ({ ...sub, risk: assessTaskRisk(sub) })),
+  }));
+
+  res.json({ ...wedding, tasks });
 });
 
 router.patch('/:id', async (req, res) => {

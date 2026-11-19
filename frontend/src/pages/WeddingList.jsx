@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom';
 import client from '../api/client';
 import Modal from '../components/Modal';
 import {
+  CurrencyInput,
+  DatePickerWithLunar,
+  VIETNAMESE_TRADITIONAL_EVENTS,
+} from '../components/WeddingFormFields';
+import {
   PlusIcon,
   SearchIcon,
   CalendarIcon,
@@ -21,6 +26,7 @@ import {
   getCountdownText,
   dateInputToIso,
   toDateInputValue,
+  getShortLunarDate,
 } from '../utils/format';
 
 const STATUS_FILTERS = ['ALL', 'LEAD', 'PLANNING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
@@ -39,6 +45,16 @@ export default function WeddingList() {
   const [totalBudget, setTotalBudget] = useState('');
   const [planningStartDate, setPlanningStartDate] = useState('');
   const [generateTimeline, setGenerateTimeline] = useState(true);
+  
+  // Traditional Vietnamese Events
+  const [showTraditionalEvents, setShowTraditionalEvents] = useState(false);
+  const [traditionalDates, setTraditionalDates] = useState({
+    dam_ngo: '',
+    an_hoi: '',
+    vu_quy: '',
+    lai_mat: '',
+  });
+
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -82,6 +98,13 @@ export default function WeddingList() {
     setTotalBudget('');
     setPlanningStartDate(toDateInputValue(new Date().toISOString()));
     setGenerateTimeline(true);
+    setShowTraditionalEvents(false);
+    setTraditionalDates({
+      dam_ngo: '',
+      an_hoi: '',
+      vu_quy: '',
+      lai_mat: '',
+    });
     setFormError('');
     setModalOpen(true);
   }
@@ -94,7 +117,7 @@ export default function WeddingList() {
       return;
     }
     if (generateTimeline && weddingDate && planningStartDate && planningStartDate >= weddingDate) {
-      setFormError('Ngày bắt đầu lập kế hoạch phải trước ngày tổ chức.');
+      setFormError('Ngày bắt đầu lập kế hoạch phải trước ngày cưới chính thức.');
       return;
     }
 
@@ -111,7 +134,47 @@ export default function WeddingList() {
 
     setSaving(true);
     try {
-      await client.post('/weddings', payload);
+      const { data: createdWedding } = await client.post('/weddings', payload);
+
+      // Create milestone tasks for Vietnamese traditional events if entered
+      const eventTasks = [];
+      if (traditionalDates.dam_ngo) {
+        eventTasks.push({
+          weddingId: createdWedding.id,
+          title: 'Nghi thức: Lễ Dạm Ngõ (Nhà gái)',
+          dueDate: dateInputToIso(traditionalDates.dam_ngo),
+        });
+      }
+      if (traditionalDates.an_hoi) {
+        eventTasks.push({
+          weddingId: createdWedding.id,
+          title: 'Nghi thức: Lễ Đính Hôn (Lễ Ăn Hỏi)',
+          dueDate: dateInputToIso(traditionalDates.an_hoi),
+        });
+      }
+      if (traditionalDates.vu_quy) {
+        eventTasks.push({
+          weddingId: createdWedding.id,
+          title: 'Nghi thức: Lễ Vu Quy (Nhà gái)',
+          dueDate: dateInputToIso(traditionalDates.vu_quy),
+        });
+      }
+      if (traditionalDates.lai_mat) {
+        eventTasks.push({
+          weddingId: createdWedding.id,
+          title: 'Nghi thức: Lễ Lại Mặt (Nhị hỷ)',
+          dueDate: dateInputToIso(traditionalDates.lai_mat),
+        });
+      }
+
+      for (const t of eventTasks) {
+        try {
+          await client.post('/tasks', t);
+        } catch {
+          // ignore individual event task errors
+        }
+      }
+
       setModalOpen(false);
       await load();
     } catch {
@@ -241,6 +304,7 @@ export default function WeddingList() {
           {filtered.map((w) => {
             const statusMeta = WEDDING_STATUS_MAP[w.status] || WEDDING_STATUS_MAP.LEAD;
             const countdown = getCountdownText(w.weddingDate);
+            const shortLunar = w.weddingDate ? getShortLunarDate(w.weddingDate) : '';
 
             return (
               <Link key={w.id} to={`/weddings/${w.id}`} className="wedding-card">
@@ -257,7 +321,14 @@ export default function WeddingList() {
                 <div className="wedding-card-meta">
                   <div className="meta-row">
                     <CalendarIcon size={15} />
-                    <span>{formatDate(w.weddingDate)}</span>
+                    <span>
+                      {formatDate(w.weddingDate)}
+                      {shortLunar && (
+                        <span style={{ marginLeft: 6, color: '#9d6728', fontWeight: 500, fontSize: 12 }}>
+                          ({shortLunar})
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div className="meta-row">
                     <MapPinIcon size={15} />
@@ -318,32 +389,22 @@ export default function WeddingList() {
           </div>
 
           <div className="form-row">
-            <div className="form-group">
-              <label className="form-label" htmlFor="w-date">
-                Ngày tổ chức dự kiến
-              </label>
-              <input
-                id="w-date"
-                type="date"
-                className="input"
-                value={weddingDate}
-                onChange={(e) => setWeddingDate(e.target.value)}
-              />
-            </div>
+            <DatePickerWithLunar
+              id="w-date"
+              label="Ngày tổ chức chính (Thành Hôn)"
+              value={weddingDate}
+              onChange={setWeddingDate}
+            />
 
             <div className="form-group">
               <label className="form-label" htmlFor="w-budget">
-                Ngân sách mục tiêu (VNĐ)
+                Ngân sách mục tiêu
               </label>
-              <input
+              <CurrencyInput
                 id="w-budget"
-                type="number"
-                min="0"
-                step="1000000"
-                className="input"
-                placeholder="VD: 350000000"
+                placeholder="VD: 200.000.000"
                 value={totalBudget}
-                onChange={(e) => setTotalBudget(e.target.value)}
+                onChange={setTotalBudget}
               />
             </div>
           </div>
@@ -361,8 +422,84 @@ export default function WeddingList() {
             />
           </div>
 
+          {/* Traditional Events Collapsible Section */}
+          <div
+            style={{
+              border: '1px solid #eedec7',
+              borderRadius: 12,
+              padding: 14,
+              backgroundColor: '#fefaf5',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+              }}
+              onClick={() => setShowTraditionalEvents(!showTraditionalEvents)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 16 }}>🏮</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13.5, color: '#684318' }}>
+                    Các ngày lễ truyền thống Việt Nam
+                  </div>
+                  <div style={{ fontSize: 12, color: '#8f7759' }}>
+                    Dạm ngõ, Đính hôn (Ăn hỏi), Vu quy, Lại mặt (tự động hiện Âm lịch)
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                style={{ color: '#845722', fontWeight: 600 }}
+              >
+                {showTraditionalEvents ? 'Thu gọn ▲' : 'Thêm ngày ▼'}
+              </button>
+            </div>
+
+            {showTraditionalEvents && (
+              <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <DatePickerWithLunar
+                  id="trad-dam-ngo"
+                  label="1. Lễ Dạm Ngõ (Chạm ngõ)"
+                  sublabel="Gặp mặt hai họ"
+                  value={traditionalDates.dam_ngo}
+                  onChange={(val) => setTraditionalDates((p) => ({ ...p, dam_ngo: val }))}
+                />
+
+                <DatePickerWithLunar
+                  id="trad-an-hoi"
+                  label="2. Lễ Đính Hôn (Ăn hỏi / Trao tráp)"
+                  sublabel="Nhà trai mang lễ sang nhà gái"
+                  value={traditionalDates.an_hoi}
+                  onChange={(val) => setTraditionalDates((p) => ({ ...p, an_hoi: val }))}
+                />
+
+                <DatePickerWithLunar
+                  id="trad-vu-quy"
+                  label="3. Lễ Vu Quy (Nhà gái xuất giá)"
+                  sublabel="Lễ tại nhà gái trước khi rước dâu"
+                  value={traditionalDates.vu_quy}
+                  onChange={(val) => setTraditionalDates((p) => ({ ...p, vu_quy: val }))}
+                />
+
+                <DatePickerWithLunar
+                  id="trad-lai-mat"
+                  label="4. Lễ Lại Mặt (Nhị hỷ)"
+                  sublabel="Cô dâu chú rể về thăm nhà gái sau cưới"
+                  value={traditionalDates.lai_mat}
+                  onChange={(val) => setTraditionalDates((p) => ({ ...p, lai_mat: val }))}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Automated Timeline Checkbox */}
           {weddingDate && (
-            <div className="form-group" style={{ background: 'var(--surface-subtle, #f7f5f2)', padding: 12, borderRadius: 10 }}>
+            <div className="form-group" style={{ background: '#f6f4ef', padding: 12, borderRadius: 10 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500 }}>
                 <input
                   type="checkbox"
@@ -377,17 +514,13 @@ export default function WeddingList() {
               </p>
 
               {generateTimeline && (
-                <div className="form-group" style={{ marginTop: 10 }}>
-                  <label className="form-label" htmlFor="w-plan-start">
-                    Ngày bắt đầu lập kế hoạch
-                  </label>
-                  <input
+                <div style={{ marginTop: 10 }}>
+                  <DatePickerWithLunar
                     id="w-plan-start"
-                    type="date"
-                    className="input"
-                    max={weddingDate}
+                    label="Ngày bắt đầu lập kế hoạch"
                     value={planningStartDate}
-                    onChange={(e) => setPlanningStartDate(e.target.value)}
+                    max={weddingDate}
+                    onChange={setPlanningStartDate}
                   />
                 </div>
               )}

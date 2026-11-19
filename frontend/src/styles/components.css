@@ -1083,12 +1083,34 @@
   transition: background-color 0.15s;
 }
 
-.task-row:last-child {
+.task-row-group:last-child .task-row {
   border-bottom: none;
 }
 
 .task-row:hover {
   background: #fdfbf8;
+}
+
+.task-row-group {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.task-row-group .task-row {
+  border-bottom: none;
+}
+
+.subtask-list {
+  padding: 4px 22px 14px 58px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #fdfbf8;
+}
+
+.subtask-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .task-left {

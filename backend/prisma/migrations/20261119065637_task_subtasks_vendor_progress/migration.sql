@@ -1,0 +1,10 @@
+-- AlterTable
+ALTER TABLE `task` ADD COLUMN `parentTaskId` INTEGER NULL,
+    ADD COLUMN `progress` INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN `vendorId` INTEGER NULL;
+
+-- AddForeignKey
+ALTER TABLE `Task` ADD CONSTRAINT `Task_vendorId_fkey` FOREIGN KEY (`vendorId`) REFERENCES `Vendor`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Task` ADD CONSTRAINT `Task_parentTaskId_fkey` FOREIGN KEY (`parentTaskId`) REFERENCES `Task`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

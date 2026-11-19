@@ -89,8 +89,17 @@ model Task {
   title       String
   dueDate     DateTime?
   status      TaskStatus @default(PENDING)
+  progress    Int        @default(0)
   assigneeId  Int?
   assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  vendorId    Int?
+  vendor      Vendor?    @relation(fields: [vendorId], references: [id])
+
+  parentTaskId Int?
+  parentTask   Task?     @relation("Subtasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  subtasks     Task[]    @relation("Subtasks")
+
   createdAt   DateTime   @default(now())
 }
 
@@ -130,6 +139,7 @@ model Vendor {
   createdAt      DateTime     @default(now())
 
   weddingLinks WeddingVendor[]
+  tasks        Task[]
 }
 
 model WeddingVendor {

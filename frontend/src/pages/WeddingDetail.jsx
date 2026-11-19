@@ -3,6 +3,10 @@ import { Link, useParams } from 'react-router-dom';
 import client from '../api/client';
 import Modal from '../components/Modal';
 import {
+  CurrencyInput,
+  DatePickerWithLunar,
+} from '../components/WeddingFormFields';
+import {
   ArrowLeftIcon,
   CalendarIcon,
   MapPinIcon,
@@ -15,6 +19,12 @@ import {
   SearchIcon,
   SparklesIcon,
 } from '../components/Icons';
+
+const RISK_META = {
+  overdue: { label: 'Quá hạn', className: 'badge-danger' },
+  at_risk: { label: 'Có nguy cơ trễ', className: 'badge-amber' },
+  on_track: { label: 'Đúng tiến độ', className: 'badge-sage' },
+};
 import {
   WEDDING_STATUS_MAP,
   TASK_STATUS_MAP,
@@ -26,6 +36,8 @@ import {
   dateInputToIso,
   getCountdownText,
   isOverdue,
+  getLunarDateString,
+  getShortLunarDate,
 } from '../utils/format';
 
 const BUDGET_PRESETS = [
@@ -44,6 +56,7 @@ const GUEST_GROUP_PRESETS = ['Nhà trai', 'Nhà gái', 'Bạn cô dâu', 'Bạn 
 export default function WeddingDetail() {
   const { id } = useParams();
   const [wedding, setWedding] = useState(null);
+  const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('tasks');
 
@@ -52,6 +65,9 @@ export default function WeddingDetail() {
   const [taskDueDate, setTaskDueDate] = useState('');
   const [taskFilter, setTaskFilter] = useState('ALL');
   const [addingTask, setAddingTask] = useState(false);
+  const [expandedTasks, setExpandedTasks] = useState({});
+  const [subtaskDraft, setSubtaskDraft] = useState({}); // { [parentId]: title }
+  const [addingSubtaskFor, setAddingSubtaskFor] = useState(null);
 
   // Edit wedding modal
   const [weddingModal, setWeddingModal] = useState(false);
@@ -61,7 +77,7 @@ export default function WeddingDetail() {
 
   // Edit task modal
   const [taskModal, setTaskModal] = useState(null); // task object
-  const [tForm, setTForm] = useState({ title: '', dueDate: '', status: 'PENDING' });
+  const [tForm, setTForm] = useState({ title: '', dueDate: '', status: 'PENDING', progress: 0, vendorId: '' });
   const [savingTask, setSavingTask] = useState(false);
 
   // Auto-generate timeline modal
@@ -105,6 +121,7 @@ export default function WeddingDetail() {
   useEffect(() => {
     setLoading(true);
     load();
+    client.get('/vendors').then(({ data }) => setVendors(data)).catch(() => {});
   }, [id]);
 
   // Computed metrics
@@ -242,6 +259,8 @@ export default function WeddingDetail() {
       title: task.title || '',
       dueDate: toDateInputValue(task.dueDate),
       status: task.status || 'PENDING',
+      progress: task.progress ?? 0,
+      vendorId: task.vendorId ? String(task.vendorId) : '',
     });
   }
 
@@ -254,12 +273,53 @@ export default function WeddingDetail() {
         title: tForm.title.trim(),
         dueDate: tForm.dueDate ? dateInputToIso(tForm.dueDate) : null,
         status: tForm.status,
+        progress: Number(tForm.progress) || 0,
+        vendorId: tForm.vendorId ? Number(tForm.vendorId) : null,
       });
       setTaskModal(null);
       await load();
     } finally {
       setSavingTask(false);
     }
+  }
+
+  function toggleExpanded(taskId) {
+    setExpandedTasks((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
+  }
+
+  async function handleAddSubtask(parentId) {
+    const title = (subtaskDraft[parentId] || '').trim();
+    if (title.length < 2) return;
+    setAddingSubtaskFor(parentId);
+    try {
+      await client.post('/tasks', { weddingId: Number(id), parentTaskId: parentId, title });
+      setSubtaskDraft((prev) => ({ ...prev, [parentId]: '' }));
+      setExpandedTasks((prev) => ({ ...prev, [parentId]: true }));
+      await load();
+    } finally {
+      setAddingSubtaskFor(null);
+    }
+  }
+
+  async function toggleSubtask(subtask) {
+    const nextStatus = subtask.status === 'DONE' ? 'PENDING' : 'DONE';
+    await client.patch(`/tasks/${subtask.id}`, { status: nextStatus });
+    await load();
+  }
+
+  async function handleDeleteSubtask(subtaskId) {
+    await client.delete(`/tasks/${subtaskId}`);
+    await load();
+  }
+
+  async function handleAssignVendor(taskId, vendorId) {
+    await client.patch(`/tasks/${taskId}`, { vendorId: vendorId ? Number(vendorId) : null });
+    await load();
+  }
+
+  async function handleProgressChange(taskId, progress) {
+    await client.patch(`/tasks/${taskId}`, { progress: Number(progress) });
+    await load();
   }
 
   // --- Timeline auto-generate ---
@@ -483,7 +543,14 @@ export default function WeddingDetail() {
           <div className="detail-hero-meta">
             <span className="meta-row">
               <CalendarIcon size={15} />
-              <span>{formatDate(wedding.weddingDate)}</span>
+              <span>
+                {formatDate(wedding.weddingDate)}
+                {wedding.weddingDate && (
+                  <span style={{ marginLeft: 6, color: '#9d6728', fontWeight: 500 }}>
+                    ({getLunarDateString(wedding.weddingDate)})
+                  </span>
+                )}
+              </span>
             </span>
             <span className="meta-row">
               <MapPinIcon size={15} />
@@ -672,56 +739,167 @@ export default function WeddingDetail() {
               {filteredTasks.map((t) => {
                 const stMeta = TASK_STATUS_MAP[t.status] || TASK_STATUS_MAP.PENDING;
                 const overdue = isOverdue(t.dueDate, t.status);
+                const riskMeta = t.risk ? RISK_META[t.risk] : null;
+                const subtasks = t.subtasks || [];
+                const doneSubtasks = subtasks.filter((s) => s.status === 'DONE').length;
+                const expanded = Boolean(expandedTasks[t.id]);
 
                 return (
-                  <div key={t.id} className="task-row">
-                    <div className="task-left">
-                      <button
-                        type="button"
-                        className={`task-checkbox ${t.status === 'DONE' ? 'checked' : ''}`}
-                        onClick={() => toggleTask(t)}
-                        aria-label={t.status === 'DONE' ? 'Đánh dấu chưa xong' : 'Đánh dấu hoàn thành'}
-                      >
-                        {t.status === 'DONE' && <CheckIcon size={13} />}
-                      </button>
-                      <div>
-                        <div className={`task-title ${t.status === 'DONE' ? 'done' : ''}`}>{t.title}</div>
-                        {t.dueDate && (
-                          <div
-                            style={{
-                              fontSize: 12,
-                              marginTop: 2,
-                              color: overdue ? 'var(--danger-text)' : 'var(--text-muted)',
-                              fontWeight: overdue ? 600 : 400,
-                            }}
-                          >
-                            Hạn: {formatDate(t.dueDate)} {overdue ? '• Quá hạn' : ''}
+                  <div key={t.id} className="task-row-group">
+                    <div className="task-row">
+                      <div className="task-left">
+                        <button
+                          type="button"
+                          className={`task-checkbox ${t.status === 'DONE' ? 'checked' : ''}`}
+                          onClick={() => toggleTask(t)}
+                          aria-label={t.status === 'DONE' ? 'Đánh dấu chưa xong' : 'Đánh dấu hoàn thành'}
+                        >
+                          {t.status === 'DONE' && <CheckIcon size={13} />}
+                        </button>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <span className={`task-title ${t.status === 'DONE' ? 'done' : ''}`}>{t.title}</span>
+                            {riskMeta && <span className={`badge ${riskMeta.className}`}>{riskMeta.label}</span>}
                           </div>
-                        )}
+                          {t.dueDate && (
+                            <div
+                              style={{
+                                fontSize: 12,
+                                marginTop: 2,
+                                color: overdue ? 'var(--danger-text)' : 'var(--text-muted)',
+                                fontWeight: overdue ? 600 : 400,
+                              }}
+                            >
+                              Hạn: {formatDate(t.dueDate)}
+                              <span style={{ marginLeft: 5, color: '#9d6728' }}>
+                                ({getShortLunarDate(t.dueDate)})
+                              </span>
+                              {overdue ? ' • Quá hạn' : ''}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                            <div className="progress-track" style={{ width: 120, height: 6 }}>
+                              <div
+                                className="progress-fill progress-fill-sage"
+                                style={{ width: `${t.progress || 0}%` }}
+                              />
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              step="5"
+                              value={t.progress || 0}
+                              onChange={(e) => handleProgressChange(t.id, e.target.value)}
+                              style={{ width: 90 }}
+                              title="Cập nhật tiến độ"
+                            />
+                            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.progress || 0}%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="task-right">
+                        <select
+                          className="inline-select"
+                          value={t.vendorId || ''}
+                          onChange={(e) => handleAssignVendor(t.id, e.target.value)}
+                          title="Gán đối tác phụ trách"
+                        >
+                          <option value="">Chưa gán đối tác</option>
+                          {vendors.map((v) => (
+                            <option key={v.id} value={v.id}>
+                              {v.name}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          className={`inline-select ${stMeta.select}`}
+                          value={t.status}
+                          onChange={(e) => updateTaskStatus(t.id, e.target.value)}
+                        >
+                          {Object.entries(TASK_STATUS_MAP).map(([key, meta]) => (
+                            <option key={key} value={key}>
+                              {meta.label}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => toggleExpanded(t.id)}
+                        >
+                          <span>
+                            {expanded ? '▾' : '▸'} Việc con{subtasks.length ? ` (${doneSubtasks}/${subtasks.length})` : ''}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-icon"
+                          onClick={() => openEditTask(t)}
+                          title="Sửa công việc"
+                        >
+                          <EditIcon size={14} />
+                        </button>
                       </div>
                     </div>
 
-                    <div className="task-right">
-                      <select
-                        className={`inline-select ${stMeta.select}`}
-                        value={t.status}
-                        onChange={(e) => updateTaskStatus(t.id, e.target.value)}
-                      >
-                        {Object.entries(TASK_STATUS_MAP).map(([key, meta]) => (
-                          <option key={key} value={key}>
-                            {meta.label}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-icon"
-                        onClick={() => openEditTask(t)}
-                        title="Sửa công việc"
-                      >
-                        <EditIcon size={14} />
-                      </button>
-                    </div>
+                    {expanded && (
+                      <div className="subtask-list">
+                        {subtasks.map((s) => {
+                          const sRiskMeta = s.risk ? RISK_META[s.risk] : null;
+                          return (
+                            <div key={s.id} className="subtask-row">
+                              <button
+                                type="button"
+                                className={`task-checkbox ${s.status === 'DONE' ? 'checked' : ''}`}
+                                onClick={() => toggleSubtask(s)}
+                                aria-label={s.status === 'DONE' ? 'Đánh dấu chưa xong' : 'Đánh dấu hoàn thành'}
+                              >
+                                {s.status === 'DONE' && <CheckIcon size={11} />}
+                              </button>
+                              <span className={`task-title ${s.status === 'DONE' ? 'done' : ''}`} style={{ fontSize: 13 }}>
+                                {s.title}
+                              </span>
+                              {sRiskMeta && <span className={`badge ${sRiskMeta.className}`}>{sRiskMeta.label}</span>}
+                              {s.vendor && <span className="badge badge-slate">{s.vendor.name}</span>}
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-icon"
+                                onClick={() => handleDeleteSubtask(s.id)}
+                                title="Xóa việc con"
+                                style={{ marginLeft: 'auto' }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          );
+                        })}
+                        <form
+                          className="quick-add-bar"
+                          style={{ marginTop: 6 }}
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleAddSubtask(t.id);
+                          }}
+                        >
+                          <input
+                            className="input input-sm input-grow"
+                            placeholder="Thêm việc con..."
+                            value={subtaskDraft[t.id] || ''}
+                            onChange={(e) => setSubtaskDraft((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                          />
+                          <button
+                            type="submit"
+                            className="btn btn-secondary btn-sm"
+                            disabled={addingSubtaskFor === t.id || (subtaskDraft[t.id] || '').trim().length < 2}
+                          >
+                            <PlusIcon size={13} />
+                            <span>Thêm</span>
+                          </button>
+                        </form>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -991,15 +1169,12 @@ export default function WeddingDetail() {
           </div>
 
           <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Ngày tổ chức</label>
-              <input
-                type="date"
-                className="input"
-                value={wForm.weddingDate}
-                onChange={(e) => setWForm({ ...wForm, weddingDate: e.target.value })}
-              />
-            </div>
+            <DatePickerWithLunar
+              id="edit-w-date"
+              label="Ngày tổ chức chính"
+              value={wForm.weddingDate}
+              onChange={(val) => setWForm({ ...wForm, weddingDate: val })}
+            />
 
             <div className="form-group">
               <label className="form-label">Trạng thái</label>
@@ -1028,14 +1203,11 @@ export default function WeddingDetail() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Ngân sách mục tiêu (VNĐ)</label>
-            <input
-              type="number"
-              min="0"
-              step="1000000"
-              className="input"
+            <label className="form-label">Ngân sách mục tiêu</label>
+            <CurrencyInput
+              id="edit-w-budget"
               value={wForm.totalBudget}
-              onChange={(e) => setWForm({ ...wForm, totalBudget: e.target.value })}
+              onChange={(val) => setWForm({ ...wForm, totalBudget: val })}
             />
           </div>
 
@@ -1096,6 +1268,35 @@ export default function WeddingDetail() {
               </select>
             </div>
           </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Đối tác phụ trách</label>
+              <select
+                className="select"
+                value={tForm.vendorId}
+                onChange={(e) => setTForm({ ...tForm, vendorId: e.target.value })}
+              >
+                <option value="">Chưa gán đối tác</option>
+                {vendors.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Tiến độ ({tForm.progress}%)</label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                className="input"
+                value={tForm.progress}
+                onChange={(e) => setTForm({ ...tForm, progress: e.target.value })}
+              />
+            </div>
+          </div>
         </form>
       </Modal>
 
@@ -1151,30 +1352,24 @@ export default function WeddingDetail() {
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">
-                Chi phí dự toán (VNĐ) <span className="form-required">*</span>
+                Chi phí dự toán <span className="form-required">*</span>
               </label>
-              <input
-                type="number"
-                min="0"
-                step="500000"
-                className="input"
-                placeholder="VD: 80000000"
+              <CurrencyInput
+                id="budget-est-cost"
+                placeholder="VD: 80.000.000"
                 value={bForm.estimatedCost}
-                onChange={(e) => setBForm({ ...bForm, estimatedCost: e.target.value })}
+                onChange={(val) => setBForm({ ...bForm, estimatedCost: val })}
                 required
               />
             </div>
 
             <div className="form-group">
-              <label className="form-label">Chi phí thực chi (VNĐ)</label>
-              <input
-                type="number"
-                min="0"
-                step="500000"
-                className="input"
+              <label className="form-label">Chi phí thực chi</label>
+              <CurrencyInput
+                id="budget-act-cost"
                 placeholder="Để trống nếu chưa chi"
                 value={bForm.actualCost}
-                onChange={(e) => setBForm({ ...bForm, actualCost: e.target.value })}
+                onChange={(val) => setBForm({ ...bForm, actualCost: val })}
               />
             </div>
           </div>
