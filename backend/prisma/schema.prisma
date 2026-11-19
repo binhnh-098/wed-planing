@@ -133,8 +133,12 @@ model Vendor {
   organization   Organization @relation(fields: [organizationId], references: [id])
   name           String
   category       String
+  province       String?
+  address        String?
+  description    String?      @db.Text
   phone          String?
   email          String?
+  website        String?
   rating         Int?
   createdAt      DateTime     @default(now())
 

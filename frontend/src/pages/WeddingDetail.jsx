@@ -6,6 +6,7 @@ import {
   CurrencyInput,
   DatePickerWithLunar,
 } from '../components/WeddingFormFields';
+import { VendorAssignmentBadge } from '../components/VendorAssignmentBadge';
 import {
   ArrowLeftIcon,
   CalendarIcon,
@@ -807,19 +808,12 @@ export default function WeddingDetail() {
                       </div>
 
                       <div className="task-right">
-                        <select
-                          className="inline-select"
-                          value={t.vendorId || ''}
-                          onChange={(e) => handleAssignVendor(t.id, e.target.value)}
-                          title="Gán đối tác phụ trách"
-                        >
-                          <option value="">Chưa gán đối tác</option>
-                          {vendors.map((v) => (
-                            <option key={v.id} value={v.id}>
-                              {v.name}
-                            </option>
-                          ))}
-                        </select>
+                        <VendorAssignmentBadge
+                          task={t}
+                          weddingVendors={wedding.vendorLinks || []}
+                          allVendors={vendors}
+                          onAssigned={load}
+                        />
                         <select
                           className={`inline-select ${stMeta.select}`}
                           value={t.status}
@@ -919,20 +913,12 @@ export default function WeddingDetail() {
                               </div>
 
                               <div className="subtask-right">
-                                <select
-                                  className="inline-select"
-                                  style={{ fontSize: 11.5, padding: '4px 8px' }}
-                                  value={s.vendorId || ''}
-                                  onChange={(e) => handleAssignVendor(s.id, e.target.value)}
-                                  title="Gán đối tác phụ trách việc con"
-                                >
-                                  <option value="">Chưa gán đối tác</option>
-                                  {vendors.map((v) => (
-                                    <option key={v.id} value={v.id}>
-                                      {v.name}
-                                    </option>
-                                  ))}
-                                </select>
+                                <VendorAssignmentBadge
+                                  task={s}
+                                  weddingVendors={wedding.vendorLinks || []}
+                                  allVendors={vendors}
+                                  onAssigned={load}
+                                />
 
                                 <select
                                   className={`inline-select ${sStMeta.select}`}
