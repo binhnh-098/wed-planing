@@ -319,8 +319,17 @@ export default function WeddingDetail() {
         : tForm.assignedSide === 'GROOM'
         ? wedding.groomProvince
         : null;
+    const relevantWard =
+      tForm.assignedSide === 'BRIDE'
+        ? wedding.brideWard
+        : tForm.assignedSide === 'GROOM'
+        ? wedding.groomWard
+        : null;
     if (!relevantProvince) return vendors;
-    return vendors.filter((v) => !v.province || v.province === relevantProvince);
+    const inProvince = vendors.filter((v) => !v.province || v.province === relevantProvince);
+    if (!relevantWard) return inProvince;
+    const inWard = inProvince.filter((v) => !v.ward || v.ward === relevantWard);
+    return inWard.length > 0 ? inWard : inProvince;
   }, [vendors, wedding, tForm.assignedSide]);
 
   async function handleSaveTask(e) {
@@ -1626,16 +1635,16 @@ export default function WeddingDetail() {
                 {taskModalVendorOptions.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.name}
-                    {v.province ? ` • ${v.province}` : ''}
+                    {[v.ward, v.province].filter(Boolean).length ? ` • ${[v.ward, v.province].filter(Boolean).join(', ')}` : ''}
                   </option>
                 ))}
               </select>
               {tForm.assignedSide !== 'COMMON' && (
                 <p className="form-hint" style={{ marginTop: 4 }}>
-                  Đang lọc theo tỉnh của{' '}
+                  Đang lọc theo địa chỉ của{' '}
                   {tForm.assignedSide === 'BRIDE'
-                    ? `cô dâu (${wedding?.brideProvince || 'chưa chọn'})`
-                    : `chú rể (${wedding?.groomProvince || 'chưa chọn'})`}
+                    ? `cô dâu (${[wedding?.brideWard, wedding?.brideProvince].filter(Boolean).join(', ') || 'chưa chọn'})`
+                    : `chú rể (${[wedding?.groomWard, wedding?.groomProvince].filter(Boolean).join(', ') || 'chưa chọn'})`}
                   .
                 </p>
               )}

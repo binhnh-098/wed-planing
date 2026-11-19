@@ -11,16 +11,24 @@ export function VendorAssignmentBadge({
   onAssigned, // callback(vendorId, isConfirmed)
 }) {
   const brideProvince = wedding?.brideProvince || '';
+  const brideWard = wedding?.brideWard || '';
   const groomProvince = wedding?.groomProvince || '';
+  const groomWard = wedding?.groomWard || '';
 
-  // When the task is assigned to a specific side, filter to that side's province only.
-  // For a common task, either province (bride or groom) is a match.
+  // When the task is assigned to a specific side, filter to that side's province/ward only.
+  // For a common task, either side (bride or groom) is a match.
   const relevantProvinces =
     task.assignedSide === 'BRIDE'
       ? [brideProvince].filter(Boolean)
       : task.assignedSide === 'GROOM'
       ? [groomProvince].filter(Boolean)
       : [brideProvince, groomProvince].filter(Boolean);
+  const relevantWards =
+    task.assignedSide === 'BRIDE'
+      ? [brideWard].filter(Boolean)
+      : task.assignedSide === 'GROOM'
+      ? [groomWard].filter(Boolean)
+      : [brideWard, groomWard].filter(Boolean);
   const hasRelevantProvince = relevantProvinces.length > 0;
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -34,9 +42,13 @@ export function VendorAssignmentBadge({
   const [error, setError] = useState('');
   const [onlyRelevantProvince, setOnlyRelevantProvince] = useState(hasRelevantProvince);
 
-  const vendorOptions = onlyRelevantProvince && hasRelevantProvince
-    ? allVendors.filter((v) => !v.province || relevantProvinces.includes(v.province))
-    : allVendors;
+  const vendorOptions = (() => {
+    if (!onlyRelevantProvince || !hasRelevantProvince) return allVendors;
+    const inProvince = allVendors.filter((v) => !v.province || relevantProvinces.includes(v.province));
+    if (relevantWards.length === 0) return inProvince;
+    const inWard = inProvince.filter((v) => !v.ward || relevantWards.includes(v.ward));
+    return inWard.length > 0 ? inWard : inProvince;
+  })();
 
   const currentVendor = task.vendor;
   // Check if current vendor is confirmed in weddingVendor link
@@ -249,10 +261,12 @@ export function VendorAssignmentBadge({
                     checked={onlyRelevantProvince}
                     onChange={(e) => setOnlyRelevantProvince(e.target.checked)}
                   />
-                  {task.assignedSide === 'BRIDE' && `Chỉ hiện đối tác ở tỉnh cô dâu (${brideProvince})`}
-                  {task.assignedSide === 'GROOM' && `Chỉ hiện đối tác ở tỉnh chú rể (${groomProvince})`}
+                  {task.assignedSide === 'BRIDE' &&
+                    `Chỉ hiện đối tác ở địa chỉ cô dâu (${[brideWard, brideProvince].filter(Boolean).join(', ')})`}
+                  {task.assignedSide === 'GROOM' &&
+                    `Chỉ hiện đối tác ở địa chỉ chú rể (${[groomWard, groomProvince].filter(Boolean).join(', ')})`}
                   {(!task.assignedSide || task.assignedSide === 'COMMON') &&
-                    `Chỉ hiện đối tác ở tỉnh cô dâu (${brideProvince || '—'}) hoặc chú rể (${groomProvince || '—'})`}
+                    `Chỉ hiện đối tác ở địa chỉ cô dâu (${[brideWard, brideProvince].filter(Boolean).join(', ') || '—'}) hoặc chú rể (${[groomWard, groomProvince].filter(Boolean).join(', ') || '—'})`}
                 </label>
               )}
               <select
@@ -266,7 +280,7 @@ export function VendorAssignmentBadge({
                 <option value="">-- Chưa gán đối tác (để trống) --</option>
                 {vendorOptions.map((v) => (
                   <option key={v.id} value={v.id}>
-                    {v.name} ({v.category}){v.province ? ` • ${v.province}` : ''}{' '}
+                    {v.name} ({v.category}){[v.ward, v.province].filter(Boolean).length ? ` • ${[v.ward, v.province].filter(Boolean).join(', ')}` : ''}{' '}
                     {v.phone ? `• SĐT/Zalo: ${v.phone}` : ''}
                   </option>
                 ))}
