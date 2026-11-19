@@ -12,7 +12,16 @@ export function VendorAssignmentBadge({
 }) {
   const brideProvince = wedding?.brideProvince || '';
   const groomProvince = wedding?.groomProvince || '';
-  const hasCoupleProvinces = Boolean(brideProvince || groomProvince);
+
+  // When the task is assigned to a specific side, filter to that side's province only.
+  // For a common task, either province (bride or groom) is a match.
+  const relevantProvinces =
+    task.assignedSide === 'BRIDE'
+      ? [brideProvince].filter(Boolean)
+      : task.assignedSide === 'GROOM'
+      ? [groomProvince].filter(Boolean)
+      : [brideProvince, groomProvince].filter(Boolean);
+  const hasRelevantProvince = relevantProvinces.length > 0;
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedVendorId, setSelectedVendorId] = useState(task.vendorId || '');
@@ -23,10 +32,10 @@ export function VendorAssignmentBadge({
   const [newCategory, setNewCategory] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [onlyCoupleProvinces, setOnlyCoupleProvinces] = useState(hasCoupleProvinces);
+  const [onlyRelevantProvince, setOnlyRelevantProvince] = useState(hasRelevantProvince);
 
-  const vendorOptions = onlyCoupleProvinces && hasCoupleProvinces
-    ? allVendors.filter((v) => !v.province || v.province === brideProvince || v.province === groomProvince)
+  const vendorOptions = onlyRelevantProvince && hasRelevantProvince
+    ? allVendors.filter((v) => !v.province || relevantProvinces.includes(v.province))
     : allVendors;
 
   const currentVendor = task.vendor;
@@ -224,7 +233,7 @@ export function VendorAssignmentBadge({
                   + Thêm đối tác mới
                 </button>
               </div>
-              {hasCoupleProvinces && (
+              {hasRelevantProvince && (
                 <label
                   style={{
                     display: 'flex',
@@ -237,10 +246,13 @@ export function VendorAssignmentBadge({
                 >
                   <input
                     type="checkbox"
-                    checked={onlyCoupleProvinces}
-                    onChange={(e) => setOnlyCoupleProvinces(e.target.checked)}
+                    checked={onlyRelevantProvince}
+                    onChange={(e) => setOnlyRelevantProvince(e.target.checked)}
                   />
-                  Chỉ hiện đối tác ở tỉnh cô dâu ({brideProvince || '—'}) hoặc chú rể ({groomProvince || '—'})
+                  {task.assignedSide === 'BRIDE' && `Chỉ hiện đối tác ở tỉnh cô dâu (${brideProvince})`}
+                  {task.assignedSide === 'GROOM' && `Chỉ hiện đối tác ở tỉnh chú rể (${groomProvince})`}
+                  {(!task.assignedSide || task.assignedSide === 'COMMON') &&
+                    `Chỉ hiện đối tác ở tỉnh cô dâu (${brideProvince || '—'}) hoặc chú rể (${groomProvince || '—'})`}
                 </label>
               )}
               <select
@@ -259,9 +271,9 @@ export function VendorAssignmentBadge({
                   </option>
                 ))}
               </select>
-              {onlyCoupleProvinces && hasCoupleProvinces && vendorOptions.length === 0 && (
+              {onlyRelevantProvince && hasRelevantProvince && vendorOptions.length === 0 && (
                 <p className="form-hint" style={{ marginTop: 4 }}>
-                  Không có đối tác nào ở hai tỉnh này. Bỏ chọn ô lọc ở trên để xem tất cả.
+                  Không có đối tác nào ở tỉnh này. Bỏ chọn ô lọc ở trên để xem tất cả.
                 </p>
               )}
             </div>

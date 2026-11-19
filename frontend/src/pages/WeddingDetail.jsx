@@ -97,7 +97,14 @@ export default function WeddingDetail() {
 
   // Edit task modal
   const [taskModal, setTaskModal] = useState(null); // task object
-  const [tForm, setTForm] = useState({ title: '', dueDate: '', status: 'PENDING', progress: 0, vendorId: '' });
+  const [tForm, setTForm] = useState({
+    title: '',
+    dueDate: '',
+    status: 'PENDING',
+    progress: 0,
+    vendorId: '',
+    assignedSide: 'COMMON',
+  });
   const [savingTask, setSavingTask] = useState(false);
 
   // Auto-generate timeline modal
@@ -293,8 +300,21 @@ export default function WeddingDetail() {
       status: task.status || 'PENDING',
       progress: task.progress ?? 0,
       vendorId: task.vendorId ? String(task.vendorId) : '',
+      assignedSide: task.assignedSide || 'COMMON',
     });
   }
+
+  const taskModalVendorOptions = useMemo(() => {
+    if (!wedding) return vendors;
+    const relevantProvince =
+      tForm.assignedSide === 'BRIDE'
+        ? wedding.brideProvince
+        : tForm.assignedSide === 'GROOM'
+        ? wedding.groomProvince
+        : null;
+    if (!relevantProvince) return vendors;
+    return vendors.filter((v) => !v.province || v.province === relevantProvince);
+  }, [vendors, wedding, tForm.assignedSide]);
 
   async function handleSaveTask(e) {
     e.preventDefault();
@@ -307,6 +327,7 @@ export default function WeddingDetail() {
         status: tForm.status,
         progress: Number(tForm.progress) || 0,
         vendorId: tForm.vendorId ? Number(tForm.vendorId) : null,
+        assignedSide: tForm.assignedSide,
       });
       setTaskModal(null);
       await load();
@@ -1558,6 +1579,20 @@ export default function WeddingDetail() {
           </div>
           <div className="form-row">
             <div className="form-group">
+              <label className="form-label">Gán cho</label>
+              <select
+                className="select"
+                value={tForm.assignedSide}
+                onChange={(e) => setTForm({ ...tForm, assignedSide: e.target.value, vendorId: '' })}
+              >
+                {Object.entries(SIDE_META).map(([key, meta]) => (
+                  <option key={key} value={key}>
+                    {meta.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
               <label className="form-label">Đối tác phụ trách</label>
               <select
                 className="select"
@@ -1565,13 +1600,25 @@ export default function WeddingDetail() {
                 onChange={(e) => setTForm({ ...tForm, vendorId: e.target.value })}
               >
                 <option value="">Chưa gán đối tác</option>
-                {vendors.map((v) => (
+                {taskModalVendorOptions.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.name}
+                    {v.province ? ` • ${v.province}` : ''}
                   </option>
                 ))}
               </select>
+              {tForm.assignedSide !== 'COMMON' && (
+                <p className="form-hint" style={{ marginTop: 4 }}>
+                  Đang lọc theo tỉnh của{' '}
+                  {tForm.assignedSide === 'BRIDE'
+                    ? `cô dâu (${wedding?.brideProvince || 'chưa chọn'})`
+                    : `chú rể (${wedding?.groomProvince || 'chưa chọn'})`}
+                  .
+                </p>
+              )}
             </div>
+          </div>
+          <div className="form-row">
             <div className="form-group">
               <label className="form-label">Tiến độ ({tForm.progress}%)</label>
               <input
