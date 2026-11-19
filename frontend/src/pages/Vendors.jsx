@@ -73,6 +73,11 @@ export default function Vendors() {
     return ['ALL', ...Array.from(set)];
   }, [vendors]);
 
+  const vendorsMissingLocation = useMemo(
+    () => vendors.filter((v) => !v.province && !v.ward).length,
+    [vendors]
+  );
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const wq = wardFilter.trim().toLowerCase();
@@ -260,6 +265,13 @@ export default function Vendors() {
               ? 'Xây dựng mạng lưới đối tác cưới chuyên nghiệp để dễ dàng kết nối cho các dự án.'
               : 'Thử tìm với từ khóa, hạng mục hoặc tỉnh thành khác.'}
           </p>
+          {vendors.length > 0 && (provinceFilter !== 'ALL' || wardFilter) && (
+            <p className="form-hint">
+              {vendorsMissingLocation > 0
+                ? `Có ${vendorsMissingLocation} đối tác chưa khai báo tỉnh/thành hoặc phường/xã nên không khớp bộ lọc. Mở từng đối tác và bấm "Chỉnh sửa" để bổ sung.`
+                : 'Không có đối tác nào khớp với tỉnh/phường đang lọc.'}
+            </p>
+          )}
           {vendors.length === 0 && (
             <button type="button" className="btn btn-primary" onClick={openCreateModal}>
               <PlusIcon size={16} />
@@ -290,6 +302,12 @@ export default function Vendors() {
               <h2 className="vendor-name">{v.name}</h2>
 
               <div className="wedding-card-meta">
+                {!v.province && !v.ward && (
+                  <div className="meta-row">
+                    <MapPinIcon size={14} />
+                    <span className="text-muted">Chưa có tỉnh/thành — bấm để bổ sung</span>
+                  </div>
+                )}
                 {(v.province || v.ward) && (
                   <div className="meta-row">
                     <MapPinIcon size={14} />
