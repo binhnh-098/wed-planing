@@ -8,6 +8,7 @@ import {
   VIETNAMESE_TRADITIONAL_EVENTS,
 } from '../components/WeddingFormFields';
 import { VIETNAM_PROVINCES } from '../utils/provinces';
+import { WardSelect } from '../components/WardSelect';
 import {
   PlusIcon,
   SearchIcon,
@@ -46,9 +47,11 @@ export default function WeddingList() {
   const [totalBudget, setTotalBudget] = useState('');
   const [brideName, setBrideName] = useState('');
   const [brideProvince, setBrideProvince] = useState('');
+  const [brideWard, setBrideWard] = useState('');
   const [brideAddress, setBrideAddress] = useState('');
   const [groomName, setGroomName] = useState('');
   const [groomProvince, setGroomProvince] = useState('');
+  const [groomWard, setGroomWard] = useState('');
   const [groomAddress, setGroomAddress] = useState('');
   const [planningStartDate, setPlanningStartDate] = useState('');
   const [generateTimeline, setGenerateTimeline] = useState(true);
@@ -105,9 +108,11 @@ export default function WeddingList() {
     setTotalBudget('');
     setBrideName('');
     setBrideProvince('');
+    setBrideWard('');
     setBrideAddress('');
     setGroomName('');
     setGroomProvince('');
+    setGroomWard('');
     setGroomAddress('');
     setPlanningStartDate(toDateInputValue(new Date().toISOString()));
     setGenerateTimeline(true);
@@ -142,9 +147,11 @@ export default function WeddingList() {
     }
     if (brideName.trim()) payload.brideName = brideName.trim();
     if (brideProvince) payload.brideProvince = brideProvince;
+    if (brideWard) payload.brideWard = brideWard;
     if (brideAddress.trim()) payload.brideAddress = brideAddress.trim();
     if (groomName.trim()) payload.groomName = groomName.trim();
     if (groomProvince) payload.groomProvince = groomProvince;
+    if (groomWard) payload.groomWard = groomWard;
     if (groomAddress.trim()) payload.groomAddress = groomAddress.trim();
     if (weddingDate && generateTimeline) {
       payload.generateTimeline = true;
@@ -470,7 +477,10 @@ export default function WeddingList() {
                 <select
                   className="select"
                   value={brideProvince}
-                  onChange={(e) => setBrideProvince(e.target.value)}
+                  onChange={(e) => {
+                    setBrideProvince(e.target.value);
+                    setBrideWard('');
+                  }}
                 >
                   <option value="">Chưa chọn</option>
                   {VIETNAM_PROVINCES.map((p) => (
@@ -481,10 +491,14 @@ export default function WeddingList() {
                 </select>
               </div>
               <div className="form-group">
+                <label className="form-label">Phường / Xã</label>
+                <WardSelect province={brideProvince} value={brideWard} onChange={setBrideWard} />
+              </div>
+              <div className="form-group">
                 <label className="form-label">Địa chỉ cụ thể</label>
                 <input
                   className="input input-sm"
-                  placeholder="Số nhà, đường, phường/xã..."
+                  placeholder="Số nhà, đường..."
                   value={brideAddress}
                   onChange={(e) => setBrideAddress(e.target.value)}
                 />
@@ -518,7 +532,10 @@ export default function WeddingList() {
                 <select
                   className="select"
                   value={groomProvince}
-                  onChange={(e) => setGroomProvince(e.target.value)}
+                  onChange={(e) => {
+                    setGroomProvince(e.target.value);
+                    setGroomWard('');
+                  }}
                 >
                   <option value="">Chưa chọn</option>
                   {VIETNAM_PROVINCES.map((p) => (
@@ -529,10 +546,14 @@ export default function WeddingList() {
                 </select>
               </div>
               <div className="form-group">
+                <label className="form-label">Phường / Xã</label>
+                <WardSelect province={groomProvince} value={groomWard} onChange={setGroomWard} />
+              </div>
+              <div className="form-group">
                 <label className="form-label">Địa chỉ cụ thể</label>
                 <input
                   className="input input-sm"
-                  placeholder="Số nhà, đường, phường/xã..."
+                  placeholder="Số nhà, đường..."
                   value={groomAddress}
                   onChange={(e) => setGroomAddress(e.target.value)}
                 />

@@ -47,6 +47,7 @@ import {
   getShortLunarDate,
 } from '../utils/format';
 import { VIETNAM_PROVINCES } from '../utils/provinces';
+import { WardSelect } from '../components/WardSelect';
 
 const BUDGET_PRESETS = [
   'Địa điểm & Tiệc cưới',
@@ -87,9 +88,11 @@ export default function WeddingDetail() {
     status: 'LEAD',
     brideName: '',
     brideProvince: '',
+    brideWard: '',
     brideAddress: '',
     groomName: '',
     groomProvince: '',
+    groomWard: '',
     groomAddress: '',
   });
   const [savingWedding, setSavingWedding] = useState(false);
@@ -219,9 +222,11 @@ export default function WeddingDetail() {
       status: wedding.status || 'LEAD',
       brideName: wedding.brideName || '',
       brideProvince: wedding.brideProvince || '',
+      brideWard: wedding.brideWard || '',
       brideAddress: wedding.brideAddress || '',
       groomName: wedding.groomName || '',
       groomProvince: wedding.groomProvince || '',
+      groomWard: wedding.groomWard || '',
       groomAddress: wedding.groomAddress || '',
     });
     setWeddingError('');
@@ -245,9 +250,11 @@ export default function WeddingDetail() {
         status: wForm.status,
         brideName: wForm.brideName.trim() || null,
         brideProvince: wForm.brideProvince || null,
+        brideWard: wForm.brideWard || null,
         brideAddress: wForm.brideAddress.trim() || null,
         groomName: wForm.groomName.trim() || null,
         groomProvince: wForm.groomProvince || null,
+        groomWard: wForm.groomWard || null,
         groomAddress: wForm.groomAddress.trim() || null,
       });
       setWeddingModal(false);
@@ -1450,7 +1457,7 @@ export default function WeddingDetail() {
                 <select
                   className="select"
                   value={wForm.brideProvince}
-                  onChange={(e) => setWForm({ ...wForm, brideProvince: e.target.value })}
+                  onChange={(e) => setWForm({ ...wForm, brideProvince: e.target.value, brideWard: '' })}
                 >
                   <option value="">Chưa chọn</option>
                   {VIETNAM_PROVINCES.map((p) => (
@@ -1461,10 +1468,18 @@ export default function WeddingDetail() {
                 </select>
               </div>
               <div className="form-group">
+                <label className="form-label">Phường / Xã</label>
+                <WardSelect
+                  province={wForm.brideProvince}
+                  value={wForm.brideWard}
+                  onChange={(val) => setWForm({ ...wForm, brideWard: val })}
+                />
+              </div>
+              <div className="form-group">
                 <label className="form-label">Địa chỉ cụ thể</label>
                 <input
                   className="input input-sm"
-                  placeholder="Số nhà, đường, phường/xã..."
+                  placeholder="Số nhà, đường..."
                   value={wForm.brideAddress}
                   onChange={(e) => setWForm({ ...wForm, brideAddress: e.target.value })}
                 />
@@ -1498,7 +1513,7 @@ export default function WeddingDetail() {
                 <select
                   className="select"
                   value={wForm.groomProvince}
-                  onChange={(e) => setWForm({ ...wForm, groomProvince: e.target.value })}
+                  onChange={(e) => setWForm({ ...wForm, groomProvince: e.target.value, groomWard: '' })}
                 >
                   <option value="">Chưa chọn</option>
                   {VIETNAM_PROVINCES.map((p) => (
@@ -1509,10 +1524,18 @@ export default function WeddingDetail() {
                 </select>
               </div>
               <div className="form-group">
+                <label className="form-label">Phường / Xã</label>
+                <WardSelect
+                  province={wForm.groomProvince}
+                  value={wForm.groomWard}
+                  onChange={(val) => setWForm({ ...wForm, groomWard: val })}
+                />
+              </div>
+              <div className="form-group">
                 <label className="form-label">Địa chỉ cụ thể</label>
                 <input
                   className="input input-sm"
-                  placeholder="Số nhà, đường, phường/xã..."
+                  placeholder="Số nhà, đường..."
                   value={wForm.groomAddress}
                   onChange={(e) => setWForm({ ...wForm, groomAddress: e.target.value })}
                 />

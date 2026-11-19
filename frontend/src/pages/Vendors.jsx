@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import client from '../api/client';
 import Modal from '../components/Modal';
 import { VIETNAM_PROVINCES } from '../utils/provinces';
+import { WardSelect } from '../components/WardSelect';
 import {
   PlusIcon,
   SearchIcon,
@@ -411,7 +412,7 @@ export default function Vendors() {
                 id="v-province"
                 className="select"
                 value={form.province}
-                onChange={(e) => setForm({ ...form, province: e.target.value })}
+                onChange={(e) => setForm({ ...form, province: e.target.value, ward: '' })}
               >
                 <option value="">Chưa chọn</option>
                 {VIETNAM_PROVINCES.map((p) => (
@@ -426,12 +427,11 @@ export default function Vendors() {
               <label className="form-label" htmlFor="v-ward">
                 Phường / Xã
               </label>
-              <input
+              <WardSelect
                 id="v-ward"
-                className="input"
-                placeholder="VD: Phường Bến Nghé"
+                province={form.province}
                 value={form.ward}
-                onChange={(e) => setForm({ ...form, ward: e.target.value })}
+                onChange={(val) => setForm({ ...form, ward: val })}
               />
             </div>
           </div>

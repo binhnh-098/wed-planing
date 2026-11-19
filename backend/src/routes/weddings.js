@@ -27,9 +27,11 @@ const createSchema = z.object({
   generateTimeline: z.boolean().optional(),
   brideName: z.string().optional(),
   brideProvince: z.string().optional(),
+  brideWard: z.string().optional(),
   brideAddress: z.string().optional(),
   groomName: z.string().optional(),
   groomProvince: z.string().optional(),
+  groomWard: z.string().optional(),
   groomAddress: z.string().optional(),
 });
 
@@ -94,9 +96,11 @@ const updateSchema = z.object({
   totalBudget: z.number().nullable().optional(),
   brideName: z.string().nullable().optional(),
   brideProvince: z.string().nullable().optional(),
+  brideWard: z.string().nullable().optional(),
   brideAddress: z.string().nullable().optional(),
   groomName: z.string().nullable().optional(),
   groomProvince: z.string().nullable().optional(),
+  groomWard: z.string().nullable().optional(),
   groomAddress: z.string().nullable().optional(),
 });
 

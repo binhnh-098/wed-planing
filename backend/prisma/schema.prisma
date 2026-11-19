@@ -76,10 +76,12 @@ model Wedding {
 
   brideName      String?
   brideProvince  String?
+  brideWard      String?
   brideAddress   String?
 
   groomName      String?
   groomProvince  String?
+  groomWard      String?
   groomAddress   String?
 
   clientUserId   Int?
