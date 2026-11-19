@@ -34,6 +34,12 @@ enum RsvpStatus {
   DECLINED
 }
 
+enum WeddingSide {
+  COMMON
+  BRIDE
+  GROOM
+}
+
 model Organization {
   id        Int       @id @default(autoincrement())
   name      String
@@ -68,6 +74,14 @@ model Wedding {
   venue          String?
   totalBudget    Decimal?      @db.Decimal(14, 2)
 
+  brideName      String?
+  brideProvince  String?
+  brideAddress   String?
+
+  groomName      String?
+  groomProvince  String?
+  groomAddress   String?
+
   clientUserId   Int?
   clientUser     User?         @relation("ClientUser", fields: [clientUserId], references: [id])
 
@@ -90,6 +104,7 @@ model Task {
   dueDate     DateTime?
   status      TaskStatus @default(PENDING)
   progress    Int        @default(0)
+  assignedSide WeddingSide @default(COMMON)
   assigneeId  Int?
   assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
 

@@ -41,6 +41,7 @@ const createSchema = z.object({
   vendorId: z.number().optional(),
   parentTaskId: z.number().optional(),
   progress: z.number().min(0).max(100).optional(),
+  assignedSide: z.enum(['COMMON', 'BRIDE', 'GROOM']).optional(),
 });
 
 router.post('/', async (req, res) => {
@@ -74,6 +75,7 @@ const updateSchema = z.object({
   assigneeId: z.number().nullable().optional(),
   vendorId: z.number().nullable().optional(),
   progress: z.number().min(0).max(100).optional(),
+  assignedSide: z.enum(['COMMON', 'BRIDE', 'GROOM']).optional(),
 });
 
 router.patch('/:id', async (req, res) => {

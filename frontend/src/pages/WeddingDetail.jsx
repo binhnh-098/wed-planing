@@ -26,6 +26,12 @@ const RISK_META = {
   at_risk: { label: 'Có nguy cơ trễ', className: 'badge-amber' },
   on_track: { label: 'Đúng tiến độ', className: 'badge-sage' },
 };
+
+const SIDE_META = {
+  COMMON: { label: 'Việc chung', select: 'inline-select-slate', badge: 'badge-slate' },
+  BRIDE: { label: 'Cô dâu', select: 'inline-select-rose', badge: 'badge-rose' },
+  GROOM: { label: 'Chú rể', select: 'inline-select-amber', badge: 'badge-amber' },
+};
 import {
   WEDDING_STATUS_MAP,
   TASK_STATUS_MAP,
@@ -40,6 +46,7 @@ import {
   getLunarDateString,
   getShortLunarDate,
 } from '../utils/format';
+import { VIETNAM_PROVINCES } from '../utils/provinces';
 
 const BUDGET_PRESETS = [
   'Địa điểm & Tiệc cưới',
@@ -72,7 +79,19 @@ export default function WeddingDetail() {
 
   // Edit wedding modal
   const [weddingModal, setWeddingModal] = useState(false);
-  const [wForm, setWForm] = useState({ title: '', weddingDate: '', venue: '', totalBudget: '', status: 'LEAD' });
+  const [wForm, setWForm] = useState({
+    title: '',
+    weddingDate: '',
+    venue: '',
+    totalBudget: '',
+    status: 'LEAD',
+    brideName: '',
+    brideProvince: '',
+    brideAddress: '',
+    groomName: '',
+    groomProvince: '',
+    groomAddress: '',
+  });
   const [savingWedding, setSavingWedding] = useState(false);
   const [weddingError, setWeddingError] = useState('');
 
@@ -191,6 +210,12 @@ export default function WeddingDetail() {
       venue: wedding.venue || '',
       totalBudget: wedding.totalBudget != null ? String(Number(wedding.totalBudget)) : '',
       status: wedding.status || 'LEAD',
+      brideName: wedding.brideName || '',
+      brideProvince: wedding.brideProvince || '',
+      brideAddress: wedding.brideAddress || '',
+      groomName: wedding.groomName || '',
+      groomProvince: wedding.groomProvince || '',
+      groomAddress: wedding.groomAddress || '',
     });
     setWeddingError('');
     setWeddingModal(true);
@@ -211,6 +236,12 @@ export default function WeddingDetail() {
         venue: wForm.venue.trim() || null,
         totalBudget: wForm.totalBudget !== '' ? Number(wForm.totalBudget) : null,
         status: wForm.status,
+        brideName: wForm.brideName.trim() || null,
+        brideProvince: wForm.brideProvince || null,
+        brideAddress: wForm.brideAddress.trim() || null,
+        groomName: wForm.groomName.trim() || null,
+        groomProvince: wForm.groomProvince || null,
+        groomAddress: wForm.groomAddress.trim() || null,
       });
       setWeddingModal(false);
       await load();
@@ -327,6 +358,11 @@ export default function WeddingDetail() {
 
   async function handleProgressChange(taskId, progress) {
     await client.patch(`/tasks/${taskId}`, { progress: Number(progress) });
+    await load();
+  }
+
+  async function handleAssignedSideChange(taskId, assignedSide) {
+    await client.patch(`/tasks/${taskId}`, { assignedSide });
     await load();
   }
 
@@ -572,6 +608,23 @@ export default function WeddingDetail() {
               </span>
             </span>
           </div>
+
+          {(wedding.brideName || wedding.brideProvince || wedding.groomName || wedding.groomProvince) && (
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+              {(wedding.brideName || wedding.brideProvince || wedding.brideAddress) && (
+                <span className="badge badge-rose">
+                  Cô dâu: {wedding.brideName || '—'}
+                  {wedding.brideProvince ? ` • ${wedding.brideProvince}` : ''}
+                </span>
+              )}
+              {(wedding.groomName || wedding.groomProvince || wedding.groomAddress) && (
+                <span className="badge badge-amber">
+                  Chú rể: {wedding.groomName || '—'}
+                  {wedding.groomProvince ? ` • ${wedding.groomProvince}` : ''}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="detail-hero-actions">
@@ -808,8 +861,21 @@ export default function WeddingDetail() {
                       </div>
 
                       <div className="task-right">
+                        <select
+                          className={`inline-select ${SIDE_META[t.assignedSide || 'COMMON'].select}`}
+                          value={t.assignedSide || 'COMMON'}
+                          onChange={(e) => handleAssignedSideChange(t.id, e.target.value)}
+                          title="Gán cho cô dâu / chú rể / việc chung"
+                        >
+                          {Object.entries(SIDE_META).map(([key, meta]) => (
+                            <option key={key} value={key}>
+                              {meta.label}
+                            </option>
+                          ))}
+                        </select>
                         <VendorAssignmentBadge
                           task={t}
+                          wedding={wedding}
                           weddingVendors={wedding.vendorLinks || []}
                           allVendors={vendors}
                           onAssigned={load}
@@ -913,8 +979,22 @@ export default function WeddingDetail() {
                               </div>
 
                               <div className="subtask-right">
+                                <select
+                                  className={`inline-select ${SIDE_META[s.assignedSide || 'COMMON'].select}`}
+                                  style={{ fontSize: 11.5, padding: '4px 8px' }}
+                                  value={s.assignedSide || 'COMMON'}
+                                  onChange={(e) => handleAssignedSideChange(s.id, e.target.value)}
+                                  title="Gán cho cô dâu / chú rể / việc chung"
+                                >
+                                  {Object.entries(SIDE_META).map(([key, meta]) => (
+                                    <option key={key} value={key}>
+                                      {meta.label}
+                                    </option>
+                                  ))}
+                                </select>
                                 <VendorAssignmentBadge
                                   task={s}
+                                  wedding={wedding}
                                   weddingVendors={wedding.vendorLinks || []}
                                   allVendors={vendors}
                                   onAssigned={load}
@@ -1319,6 +1399,104 @@ export default function WeddingDetail() {
               value={wForm.totalBudget}
               onChange={(val) => setWForm({ ...wForm, totalBudget: val })}
             />
+          </div>
+
+          <div className="form-row">
+            <div
+              style={{
+                flex: 1,
+                border: '1px solid var(--rose-border)',
+                background: 'var(--rose-bg)',
+                borderRadius: 12,
+                padding: 14,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <strong style={{ fontSize: 13, color: 'var(--rose-text)' }}>Nhà gái (Cô dâu)</strong>
+              <div className="form-group">
+                <label className="form-label">Tên cô dâu</label>
+                <input
+                  className="input input-sm"
+                  placeholder="VD: Nguyễn Thu Hà"
+                  value={wForm.brideName}
+                  onChange={(e) => setWForm({ ...wForm, brideName: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tỉnh / Thành phố</label>
+                <select
+                  className="select"
+                  value={wForm.brideProvince}
+                  onChange={(e) => setWForm({ ...wForm, brideProvince: e.target.value })}
+                >
+                  <option value="">Chưa chọn</option>
+                  {VIETNAM_PROVINCES.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Địa chỉ cụ thể</label>
+                <input
+                  className="input input-sm"
+                  placeholder="Số nhà, đường, phường/xã..."
+                  value={wForm.brideAddress}
+                  onChange={(e) => setWForm({ ...wForm, brideAddress: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div
+              style={{
+                flex: 1,
+                border: '1px solid var(--amber-border)',
+                background: 'var(--amber-bg)',
+                borderRadius: 12,
+                padding: 14,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <strong style={{ fontSize: 13, color: 'var(--amber-text)' }}>Nhà trai (Chú rể)</strong>
+              <div className="form-group">
+                <label className="form-label">Tên chú rể</label>
+                <input
+                  className="input input-sm"
+                  placeholder="VD: Trần Hoàng Nam"
+                  value={wForm.groomName}
+                  onChange={(e) => setWForm({ ...wForm, groomName: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tỉnh / Thành phố</label>
+                <select
+                  className="select"
+                  value={wForm.groomProvince}
+                  onChange={(e) => setWForm({ ...wForm, groomProvince: e.target.value })}
+                >
+                  <option value="">Chưa chọn</option>
+                  {VIETNAM_PROVINCES.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Địa chỉ cụ thể</label>
+                <input
+                  className="input input-sm"
+                  placeholder="Số nhà, đường, phường/xã..."
+                  value={wForm.groomAddress}
+                  onChange={(e) => setWForm({ ...wForm, groomAddress: e.target.value })}
+                />
+              </div>
+            </div>
           </div>
 
           {weddingError && <div className="form-error">{weddingError}</div>}

@@ -5,10 +5,15 @@ import client from '../api/client';
 
 export function VendorAssignmentBadge({
   task,
+  wedding, // wedding object (for bride/groom province matching)
   weddingVendors = [], // list of WeddingVendor links for this wedding
   allVendors = [],
   onAssigned, // callback(vendorId, isConfirmed)
 }) {
+  const brideProvince = wedding?.brideProvince || '';
+  const groomProvince = wedding?.groomProvince || '';
+  const hasCoupleProvinces = Boolean(brideProvince || groomProvince);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedVendorId, setSelectedVendorId] = useState(task.vendorId || '');
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -18,6 +23,11 @@ export function VendorAssignmentBadge({
   const [newCategory, setNewCategory] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [onlyCoupleProvinces, setOnlyCoupleProvinces] = useState(hasCoupleProvinces);
+
+  const vendorOptions = onlyCoupleProvinces && hasCoupleProvinces
+    ? allVendors.filter((v) => !v.province || v.province === brideProvince || v.province === groomProvince)
+    : allVendors;
 
   const currentVendor = task.vendor;
   // Check if current vendor is confirmed in weddingVendor link
@@ -214,6 +224,25 @@ export function VendorAssignmentBadge({
                   + Thêm đối tác mới
                 </button>
               </div>
+              {hasCoupleProvinces && (
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: 12,
+                    color: 'var(--text-secondary)',
+                    marginBottom: 6,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={onlyCoupleProvinces}
+                    onChange={(e) => setOnlyCoupleProvinces(e.target.checked)}
+                  />
+                  Chỉ hiện đối tác ở tỉnh cô dâu ({brideProvince || '—'}) hoặc chú rể ({groomProvince || '—'})
+                </label>
+              )}
               <select
                 className="select"
                 value={selectedVendorId}
@@ -223,12 +252,18 @@ export function VendorAssignmentBadge({
                 }}
               >
                 <option value="">-- Chưa gán đối tác (để trống) --</option>
-                {allVendors.map((v) => (
+                {vendorOptions.map((v) => (
                   <option key={v.id} value={v.id}>
-                    {v.name} ({v.category}) {v.phone ? `• SĐT/Zalo: ${v.phone}` : ''}
+                    {v.name} ({v.category}){v.province ? ` • ${v.province}` : ''}{' '}
+                    {v.phone ? `• SĐT/Zalo: ${v.phone}` : ''}
                   </option>
                 ))}
               </select>
+              {onlyCoupleProvinces && hasCoupleProvinces && vendorOptions.length === 0 && (
+                <p className="form-hint" style={{ marginTop: 4 }}>
+                  Không có đối tác nào ở hai tỉnh này. Bỏ chọn ô lọc ở trên để xem tất cả.
+                </p>
+              )}
             </div>
           ) : (
             <div

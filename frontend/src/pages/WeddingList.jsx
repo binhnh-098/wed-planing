@@ -7,6 +7,7 @@ import {
   DatePickerWithLunar,
   VIETNAMESE_TRADITIONAL_EVENTS,
 } from '../components/WeddingFormFields';
+import { VIETNAM_PROVINCES } from '../utils/provinces';
 import {
   PlusIcon,
   SearchIcon,
@@ -43,6 +44,12 @@ export default function WeddingList() {
   const [weddingDate, setWeddingDate] = useState('');
   const [venue, setVenue] = useState('');
   const [totalBudget, setTotalBudget] = useState('');
+  const [brideName, setBrideName] = useState('');
+  const [brideProvince, setBrideProvince] = useState('');
+  const [brideAddress, setBrideAddress] = useState('');
+  const [groomName, setGroomName] = useState('');
+  const [groomProvince, setGroomProvince] = useState('');
+  const [groomAddress, setGroomAddress] = useState('');
   const [planningStartDate, setPlanningStartDate] = useState('');
   const [generateTimeline, setGenerateTimeline] = useState(true);
   
@@ -96,6 +103,12 @@ export default function WeddingList() {
     setWeddingDate('');
     setVenue('');
     setTotalBudget('');
+    setBrideName('');
+    setBrideProvince('');
+    setBrideAddress('');
+    setGroomName('');
+    setGroomProvince('');
+    setGroomAddress('');
     setPlanningStartDate(toDateInputValue(new Date().toISOString()));
     setGenerateTimeline(true);
     setShowTraditionalEvents(false);
@@ -127,6 +140,12 @@ export default function WeddingList() {
     if (totalBudget !== '' && !Number.isNaN(Number(totalBudget))) {
       payload.totalBudget = Number(totalBudget);
     }
+    if (brideName.trim()) payload.brideName = brideName.trim();
+    if (brideProvince) payload.brideProvince = brideProvince;
+    if (brideAddress.trim()) payload.brideAddress = brideAddress.trim();
+    if (groomName.trim()) payload.groomName = groomName.trim();
+    if (groomProvince) payload.groomProvince = groomProvince;
+    if (groomAddress.trim()) payload.groomAddress = groomAddress.trim();
     if (weddingDate && generateTimeline) {
       payload.generateTimeline = true;
       payload.planningStartDate = dateInputToIso(planningStartDate || toDateInputValue(new Date().toISOString()));
@@ -420,6 +439,105 @@ export default function WeddingList() {
               value={venue}
               onChange={(e) => setVenue(e.target.value)}
             />
+          </div>
+
+          {/* Bride & Groom addresses */}
+          <div className="form-row">
+            <div
+              style={{
+                flex: 1,
+                border: '1px solid var(--rose-border)',
+                background: 'var(--rose-bg)',
+                borderRadius: 12,
+                padding: 14,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <strong style={{ fontSize: 13, color: 'var(--rose-text)' }}>Nhà gái (Cô dâu)</strong>
+              <div className="form-group">
+                <label className="form-label">Tên cô dâu</label>
+                <input
+                  className="input input-sm"
+                  placeholder="VD: Nguyễn Thu Hà"
+                  value={brideName}
+                  onChange={(e) => setBrideName(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tỉnh / Thành phố</label>
+                <select
+                  className="select"
+                  value={brideProvince}
+                  onChange={(e) => setBrideProvince(e.target.value)}
+                >
+                  <option value="">Chưa chọn</option>
+                  {VIETNAM_PROVINCES.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Địa chỉ cụ thể</label>
+                <input
+                  className="input input-sm"
+                  placeholder="Số nhà, đường, phường/xã..."
+                  value={brideAddress}
+                  onChange={(e) => setBrideAddress(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div
+              style={{
+                flex: 1,
+                border: '1px solid var(--amber-border)',
+                background: 'var(--amber-bg)',
+                borderRadius: 12,
+                padding: 14,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <strong style={{ fontSize: 13, color: 'var(--amber-text)' }}>Nhà trai (Chú rể)</strong>
+              <div className="form-group">
+                <label className="form-label">Tên chú rể</label>
+                <input
+                  className="input input-sm"
+                  placeholder="VD: Trần Hoàng Nam"
+                  value={groomName}
+                  onChange={(e) => setGroomName(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tỉnh / Thành phố</label>
+                <select
+                  className="select"
+                  value={groomProvince}
+                  onChange={(e) => setGroomProvince(e.target.value)}
+                >
+                  <option value="">Chưa chọn</option>
+                  {VIETNAM_PROVINCES.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Địa chỉ cụ thể</label>
+                <input
+                  className="input input-sm"
+                  placeholder="Số nhà, đường, phường/xã..."
+                  value={groomAddress}
+                  onChange={(e) => setGroomAddress(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Traditional Events Collapsible Section */}

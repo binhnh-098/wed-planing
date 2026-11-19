@@ -25,6 +25,12 @@ const createSchema = z.object({
   clientUserId: z.number().optional(),
   planningStartDate: z.string().datetime().optional(),
   generateTimeline: z.boolean().optional(),
+  brideName: z.string().optional(),
+  brideProvince: z.string().optional(),
+  brideAddress: z.string().optional(),
+  groomName: z.string().optional(),
+  groomProvince: z.string().optional(),
+  groomAddress: z.string().optional(),
 });
 
 router.post('/', async (req, res) => {
@@ -80,10 +86,27 @@ router.get('/:id', async (req, res) => {
   res.json({ ...wedding, tasks });
 });
 
+const updateSchema = z.object({
+  title: z.string().min(2).optional(),
+  weddingDate: z.string().datetime().nullable().optional(),
+  status: z.enum(['LEAD', 'PLANNING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']).optional(),
+  venue: z.string().nullable().optional(),
+  totalBudget: z.number().nullable().optional(),
+  brideName: z.string().nullable().optional(),
+  brideProvince: z.string().nullable().optional(),
+  brideAddress: z.string().nullable().optional(),
+  groomName: z.string().nullable().optional(),
+  groomProvince: z.string().nullable().optional(),
+  groomAddress: z.string().nullable().optional(),
+});
+
 router.patch('/:id', async (req, res) => {
+  const parsed = updateSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
   const wedding = await prisma.wedding.updateMany({
     where: { id: Number(req.params.id), organizationId: req.user.organizationId },
-    data: req.body,
+    data: parsed.data,
   });
   if (wedding.count === 0) return res.status(404).json({ error: 'Not found' });
   res.json({ ok: true });
