@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  PLANNER
+  STAFF
+  CLIENT
+}
+
+enum WeddingStatus {
+  LEAD
+  PLANNING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+}
+
+enum RsvpStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model Organization {
+  id        Int       @id @default(autoincrement())
+  name      String
+  createdAt DateTime  @default(now())
+  users     User[]
+  weddings  Wedding[]
+  vendors   Vendor[]
+}
+
+model User {
+  id             Int          @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  email          String       @unique
+  passwordHash   String
+  role           UserRole
+  createdAt      DateTime     @default(now())
+
+  weddingsAsClient Wedding[]     @relation("ClientUser")
+  assignedTasks    Task[]        @relation("TaskAssignee")
+  plannedWeddings  Wedding[]     @relation("PlannerUser")
+}
+
+model Wedding {
+  id             Int           @id @default(autoincrement())
+  organizationId Int
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  title          String
+  weddingDate    DateTime?
+  status         WeddingStatus @default(LEAD)
+  venue          String?
+  totalBudget    Decimal?      @db.Decimal(14, 2)
+
+  clientUserId   Int?
+  clientUser     User?         @relation("ClientUser", fields: [clientUserId], references: [id])
+
+  plannerUserId  Int?
+  plannerUser    User?         @relation("PlannerUser", fields: [plannerUserId], references: [id])
+
+  createdAt      DateTime      @default(now())
+
+  tasks        Task[]
+  budgetItems  BudgetItem[]
+  guests       Guest[]
+  vendorLinks  WeddingVendor[]
+}
+
+model Task {
+  id          Int        @id @default(autoincrement())
+  weddingId   Int
+  wedding     Wedding    @relation(fields: [weddingId], references: [id])
+  title       String
+  dueDate     DateTime?
+  status      TaskStatus @default(PENDING)
+  assigneeId  Int?
+  assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdAt   DateTime   @default(now())
+}
+
+model BudgetItem {
+  id            Int      @id @default(autoincrement())
+  weddingId     Int
+  wedding       Wedding  @relation(fields: [weddingId], references: [id])
+  category      String
+  estimatedCost Decimal  @db.Decimal(14, 2)
+  actualCost    Decimal? @db.Decimal(14, 2)
+  notes         String?
+  createdAt     DateTime @default(now())
+}
+
+model Guest {
+  id          Int        @id @default(autoincrement())
+  weddingId   Int
+  wedding     Wedding    @relation(fields: [weddingId], references: [id])
+  name        String
+  phone       String?
+  email       String?
+  groupName   String?
+  rsvpStatus  RsvpStatus @default(PENDING)
+  tableNumber Int?
+  createdAt   DateTime   @default(now())
+}
+
+model Vendor {
+  id             Int          @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  category       String
+  phone          String?
+  email          String?
+  rating         Int?
+  createdAt      DateTime     @default(now())
+
+  weddingLinks WeddingVendor[]
+}
+
+model WeddingVendor {
+  id        Int     @id @default(autoincrement())
+  weddingId Int
+  wedding   Wedding @relation(fields: [weddingId], references: [id])
+  vendorId  Int
+  vendor    Vendor  @relation(fields: [vendorId], references: [id])
+  price     Decimal? @db.Decimal(14, 2)
+  notes     String?
+
+  @@unique([weddingId, vendorId])
+}
