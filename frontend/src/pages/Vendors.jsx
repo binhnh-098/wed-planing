@@ -28,6 +28,7 @@ const EMPTY_FORM = {
   name: '',
   category: '',
   province: '',
+  ward: '',
   address: '',
   phone: '',
   email: '',
@@ -42,6 +43,7 @@ export default function Vendors() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [provinceFilter, setProvinceFilter] = useState('ALL');
+  const [wardFilter, setWardFilter] = useState('');
 
   // Create / Edit modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -71,27 +73,25 @@ export default function Vendors() {
     return ['ALL', ...Array.from(set)];
   }, [vendors]);
 
-  const provinces = useMemo(() => {
-    const set = new Set(vendors.map((v) => v.province).filter(Boolean));
-    return ['ALL', ...Array.from(set)];
-  }, [vendors]);
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const wq = wardFilter.trim().toLowerCase();
     return vendors.filter((v) => {
       const matchCat = categoryFilter === 'ALL' || v.category === categoryFilter;
       const matchProvince = provinceFilter === 'ALL' || v.province === provinceFilter;
+      const matchWard = !wq || (v.ward && v.ward.toLowerCase().includes(wq));
       const matchQuery =
         !q ||
         v.name.toLowerCase().includes(q) ||
         v.category.toLowerCase().includes(q) ||
         (v.province && v.province.toLowerCase().includes(q)) ||
+        (v.ward && v.ward.toLowerCase().includes(q)) ||
         (v.address && v.address.toLowerCase().includes(q)) ||
         (v.phone && v.phone.toLowerCase().includes(q)) ||
         (v.email && v.email.toLowerCase().includes(q));
-      return matchCat && matchProvince && matchQuery;
+      return matchCat && matchProvince && matchWard && matchQuery;
     });
-  }, [vendors, search, categoryFilter, provinceFilter]);
+  }, [vendors, search, categoryFilter, provinceFilter, wardFilter]);
 
   function openCreateModal() {
     setEditingVendor(null);
@@ -106,6 +106,7 @@ export default function Vendors() {
       name: v.name || '',
       category: v.category || '',
       province: v.province || '',
+      ward: v.ward || '',
       address: v.address || '',
       phone: v.phone || '',
       email: v.email || '',
@@ -131,6 +132,7 @@ export default function Vendors() {
       category: form.category.trim(),
       rating: Number(form.rating),
       province: form.province.trim() || null,
+      ward: form.ward.trim() || null,
       address: form.address.trim() || null,
       phone: form.phone.trim() || null,
       email: form.email.trim() || null,
@@ -193,9 +195,44 @@ export default function Vendors() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+
+        <select
+          className="select"
+          style={{ width: 200 }}
+          value={provinceFilter}
+          onChange={(e) => setProvinceFilter(e.target.value)}
+        >
+          <option value="ALL">Tất cả tỉnh / thành phố</option>
+          {VIETNAM_PROVINCES.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+
+        <input
+          className="input input-sm"
+          style={{ width: 180 }}
+          placeholder="Lọc theo phường/xã..."
+          value={wardFilter}
+          onChange={(e) => setWardFilter(e.target.value)}
+        />
+
+        {(provinceFilter !== 'ALL' || wardFilter) && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              setProvinceFilter('ALL');
+              setWardFilter('');
+            }}
+          >
+            Xóa lọc địa phương
+          </button>
+        )}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+      <div style={{ marginBottom: 20 }}>
         <div className="filter-pills">
           {categories.map((cat) => (
             <button
@@ -208,20 +245,6 @@ export default function Vendors() {
             </button>
           ))}
         </div>
-        {provinces.length > 1 && (
-          <div className="filter-pills">
-            {provinces.map((p) => (
-              <button
-                key={p}
-                type="button"
-                className={`pill-btn ${provinceFilter === p ? 'active' : ''}`}
-                onClick={() => setProvinceFilter(p)}
-              >
-                {p === 'ALL' ? 'Tất cả tỉnh thành' : p}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {loading ? (
@@ -267,10 +290,10 @@ export default function Vendors() {
               <h2 className="vendor-name">{v.name}</h2>
 
               <div className="wedding-card-meta">
-                {v.province && (
+                {(v.province || v.ward) && (
                   <div className="meta-row">
                     <MapPinIcon size={14} />
-                    <span>{v.province}</span>
+                    <span>{[v.ward, v.province].filter(Boolean).join(', ')}</span>
                   </div>
                 )}
                 <div className="meta-row">
@@ -382,17 +405,30 @@ export default function Vendors() {
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="v-address">
-                Địa chỉ cụ thể
+              <label className="form-label" htmlFor="v-ward">
+                Phường / Xã
               </label>
               <input
-                id="v-address"
+                id="v-ward"
                 className="input"
-                placeholder="VD: 12 Nguyễn Huệ, Quận 1"
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                placeholder="VD: Phường Bến Nghé"
+                value={form.ward}
+                onChange={(e) => setForm({ ...form, ward: e.target.value })}
               />
             </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="v-address">
+              Địa chỉ cụ thể
+            </label>
+            <input
+              id="v-address"
+              className="input"
+              placeholder="VD: 12 Nguyễn Huệ"
+              value={form.address}
+              onChange={(e) => setForm({ ...form, address: e.target.value })}
+            />
           </div>
 
           <div className="form-row">
@@ -516,7 +552,7 @@ export default function Vendors() {
               <div className="meta-row">
                 <MapPinIcon size={14} />
                 <span>
-                  {[detailVendor.address, detailVendor.province].filter(Boolean).join(', ') ||
+                  {[detailVendor.address, detailVendor.ward, detailVendor.province].filter(Boolean).join(', ') ||
                     'Chưa có thông tin địa chỉ'}
                 </span>
               </div>

@@ -149,6 +149,7 @@ model Vendor {
   name           String
   category       String
   province       String?
+  ward           String?
   address        String?
   description    String?      @db.Text
   phone          String?
