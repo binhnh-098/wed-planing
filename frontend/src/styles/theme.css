@@ -1,0 +1,156 @@
+:root {
+  /* Surfaces */
+  --bg-canvas: #faf7f2;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f4efe6;
+  --bg-elevated: #fffdf9;
+
+  /* Brand Palette: Champagne Gold & Blush Rose */
+  --gold-primary: #b58d52;
+  --gold-dark: #946f39;
+  --gold-light: #e5d2b5;
+  --gold-soft: #f7efe2;
+
+  --blush-primary: #c98a8e;
+  --blush-dark: #a6666b;
+  --blush-soft: #fbf0f1;
+
+  --espresso: #26211e;
+  --espresso-soft: #38302b;
+
+  /* Text */
+  --text-primary: #26211e;
+  --text-secondary: #6b5f57;
+  --text-muted: #988b82;
+  --text-inverse: #faf7f2;
+
+  /* Borders & Hairlines */
+  --border-subtle: #ebe3d7;
+  --border-strong: #d9cbb8;
+
+  /* Semantic Status */
+  --sage-text: #3f6d4e;
+  --sage-bg: #edf5ef;
+  --sage-border: #cde2d3;
+
+  --amber-text: #9a6b29;
+  --amber-bg: #fcf3e3;
+  --amber-border: #ebd4ae;
+
+  --rose-text: #a55259;
+  --rose-bg: #fceff0;
+  --rose-border: #eccacf;
+
+  --slate-text: #56606b;
+  --slate-bg: #f1f3f5;
+  --slate-border: #dce0e5;
+
+  --danger-text: #b23b42;
+  --danger-bg: #fdecec;
+  --danger-border: #f3c4c7;
+
+  /* Typography */
+  --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(38, 33, 30, 0.04);
+  --shadow-sm: 0 4px 14px rgba(38, 33, 30, 0.05);
+  --shadow-md: 0 10px 30px rgba(38, 33, 30, 0.08);
+  --shadow-lg: 0 24px 60px rgba(38, 33, 30, 0.14);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* Transitions */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--gold-dark);
+  text-decoration: none;
+  transition: color 0.18s var(--ease);
+}
+
+a:hover {
+  color: var(--espresso);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+h1,
+h2,
+h3,
+.font-serif {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+::selection {
+  background: var(--gold-light);
+  color: var(--espresso);
+}
+
+/* Keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.35s var(--ease) both;
+}
