@@ -616,12 +616,14 @@
   padding: 12px 18px;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
 }
 
 .mobile-nav-links {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
@@ -686,6 +688,7 @@
   gap: 10px;
   position: relative;
   overflow: hidden;
+  min-width: 0;
 }
 
 .stat-card-top {
@@ -693,12 +696,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  min-width: 0;
 }
 
 .stat-label {
   font-size: 12.5px;
   color: var(--text-secondary);
   font-weight: 500;
+  min-width: 0;
 }
 
 .stat-icon {
@@ -862,8 +867,10 @@
 
 .meta-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .meta-row svg {
@@ -1075,9 +1082,10 @@
 
 .task-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 14px;
+  gap: 10px 14px;
   padding: 14px 22px;
   border-bottom: 1px solid var(--border-subtle);
   transition: background-color 0.15s;
@@ -1100,25 +1108,54 @@
 }
 
 .subtask-list {
-  padding: 4px 22px 14px 58px;
+  padding: 8px 22px 16px 52px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   background: #fdfbf8;
+  border-top: 1px dashed var(--border-subtle);
 }
 
 .subtask-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition: all 0.18s var(--ease);
+}
+
+.subtask-row:hover {
+  border-color: var(--gold-light);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+}
+
+.subtask-left {
+  display: flex;
+  align-items: flex-start;
   gap: 10px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.subtask-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .task-left {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 13px;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 260px;
+  padding-top: 1px;
 }
 
 .task-checkbox {
@@ -1160,8 +1197,17 @@
 .task-right {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 320px;
+}
+
+.task-right .inline-select {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Tables */
@@ -1472,7 +1518,7 @@
   }
 
   .app-shell {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .sidebar {

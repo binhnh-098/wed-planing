@@ -64,6 +64,9 @@ router.get('/:id', async (req, res) => {
       },
       budgetItems: true,
       guests: true,
+      vendorLinks: {
+        include: { vendor: true },
+      },
     },
   });
   if (!wedding) return res.status(404).json({ error: 'Not found' });

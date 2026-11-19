@@ -66,7 +66,7 @@ export default function WeddingDetail() {
   const [taskFilter, setTaskFilter] = useState('ALL');
   const [addingTask, setAddingTask] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState({});
-  const [subtaskDraft, setSubtaskDraft] = useState({}); // { [parentId]: title }
+  const [subtaskDraft, setSubtaskDraft] = useState({}); // { [parentId]: { title: '', dueDate: '' } }
   const [addingSubtaskFor, setAddingSubtaskFor] = useState(null);
 
   // Edit wedding modal
@@ -288,12 +288,19 @@ export default function WeddingDetail() {
   }
 
   async function handleAddSubtask(parentId) {
-    const title = (subtaskDraft[parentId] || '').trim();
+    const draft = subtaskDraft[parentId] || {};
+    const title = (draft.title || '').trim();
     if (title.length < 2) return;
     setAddingSubtaskFor(parentId);
     try {
-      await client.post('/tasks', { weddingId: Number(id), parentTaskId: parentId, title });
-      setSubtaskDraft((prev) => ({ ...prev, [parentId]: '' }));
+      const payload = {
+        weddingId: Number(id),
+        parentTaskId: parentId,
+        title,
+      };
+      if (draft.dueDate) payload.dueDate = dateInputToIso(draft.dueDate);
+      await client.post('/tasks', payload);
+      setSubtaskDraft((prev) => ({ ...prev, [parentId]: { title: '', dueDate: '' } }));
       setExpandedTasks((prev) => ({ ...prev, [parentId]: true }));
       await load();
     } finally {
@@ -847,37 +854,132 @@ export default function WeddingDetail() {
                     {expanded && (
                       <div className="subtask-list">
                         {subtasks.map((s) => {
+                          const sStMeta = TASK_STATUS_MAP[s.status] || TASK_STATUS_MAP.PENDING;
+                          const sOverdue = isOverdue(s.dueDate, s.status);
                           const sRiskMeta = s.risk ? RISK_META[s.risk] : null;
+
                           return (
                             <div key={s.id} className="subtask-row">
-                              <button
-                                type="button"
-                                className={`task-checkbox ${s.status === 'DONE' ? 'checked' : ''}`}
-                                onClick={() => toggleSubtask(s)}
-                                aria-label={s.status === 'DONE' ? 'Đánh dấu chưa xong' : 'Đánh dấu hoàn thành'}
-                              >
-                                {s.status === 'DONE' && <CheckIcon size={11} />}
-                              </button>
-                              <span className={`task-title ${s.status === 'DONE' ? 'done' : ''}`} style={{ fontSize: 13 }}>
-                                {s.title}
-                              </span>
-                              {sRiskMeta && <span className={`badge ${sRiskMeta.className}`}>{sRiskMeta.label}</span>}
-                              {s.vendor && <span className="badge badge-slate">{s.vendor.name}</span>}
-                              <button
-                                type="button"
-                                className="btn btn-ghost btn-icon"
-                                onClick={() => handleDeleteSubtask(s.id)}
-                                title="Xóa việc con"
-                                style={{ marginLeft: 'auto' }}
-                              >
-                                ×
-                              </button>
+                              <div className="subtask-left">
+                                <button
+                                  type="button"
+                                  className={`task-checkbox ${s.status === 'DONE' ? 'checked' : ''}`}
+                                  onClick={() => toggleSubtask(s)}
+                                  aria-label={s.status === 'DONE' ? 'Đánh dấu chưa xong' : 'Đánh dấu hoàn thành'}
+                                  style={{ width: 18, height: 18 }}
+                                >
+                                  {s.status === 'DONE' && <CheckIcon size={11} />}
+                                </button>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                    <span
+                                      className={`task-title ${s.status === 'DONE' ? 'done' : ''}`}
+                                      style={{ fontSize: 13 }}
+                                    >
+                                      {s.title}
+                                    </span>
+                                    {sRiskMeta && <span className={`badge ${sRiskMeta.className}`}>{sRiskMeta.label}</span>}
+                                  </div>
+                                  {s.dueDate && (
+                                    <div
+                                      style={{
+                                        fontSize: 11.5,
+                                        marginTop: 2,
+                                        color: sOverdue ? 'var(--danger-text)' : 'var(--text-muted)',
+                                        fontWeight: sOverdue ? 600 : 400,
+                                      }}
+                                    >
+                                      Hạn: {formatDate(s.dueDate)}
+                                      <span style={{ marginLeft: 4, color: '#9d6728' }}>
+                                        ({getShortLunarDate(s.dueDate)})
+                                      </span>
+                                      {sOverdue ? ' • Quá hạn' : ''}
+                                    </div>
+                                  )}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                                    <div className="progress-track" style={{ width: 80, height: 5 }}>
+                                      <div
+                                        className="progress-fill progress-fill-sage"
+                                        style={{ width: `${s.progress || 0}%` }}
+                                      />
+                                    </div>
+                                    <input
+                                      type="range"
+                                      min="0"
+                                      max="100"
+                                      step="5"
+                                      value={s.progress || 0}
+                                      onChange={(e) => handleProgressChange(s.id, e.target.value)}
+                                      style={{ width: 75 }}
+                                      title="Cập nhật tiến độ việc con"
+                                    />
+                                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s.progress || 0}%</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="subtask-right">
+                                <select
+                                  className="inline-select"
+                                  style={{ fontSize: 11.5, padding: '4px 8px' }}
+                                  value={s.vendorId || ''}
+                                  onChange={(e) => handleAssignVendor(s.id, e.target.value)}
+                                  title="Gán đối tác phụ trách việc con"
+                                >
+                                  <option value="">Chưa gán đối tác</option>
+                                  {vendors.map((v) => (
+                                    <option key={v.id} value={v.id}>
+                                      {v.name}
+                                    </option>
+                                  ))}
+                                </select>
+
+                                <select
+                                  className={`inline-select ${sStMeta.select}`}
+                                  style={{ fontSize: 11.5, padding: '4px 8px' }}
+                                  value={s.status}
+                                  onChange={(e) => updateTaskStatus(s.id, e.target.value)}
+                                >
+                                  {Object.entries(TASK_STATUS_MAP).map(([key, meta]) => (
+                                    <option key={key} value={key}>
+                                      {meta.label}
+                                    </option>
+                                  ))}
+                                </select>
+
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-icon"
+                                  onClick={() => openEditTask(s)}
+                                  title="Sửa việc con"
+                                  style={{ width: 28, height: 28, padding: 4 }}
+                                >
+                                  <EditIcon size={13} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-icon"
+                                  onClick={() => handleDeleteSubtask(s.id)}
+                                  title="Xóa việc con"
+                                  style={{ width: 28, height: 28, padding: 4, color: 'var(--text-muted)' }}
+                                >
+                                  ×
+                                </button>
+                              </div>
                             </div>
                           );
                         })}
+
                         <form
                           className="quick-add-bar"
-                          style={{ marginTop: 6 }}
+                          style={{
+                            marginTop: 6,
+                            padding: '10px 14px',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid var(--border-subtle)',
+                            background: '#fff',
+                          }}
                           onSubmit={(e) => {
                             e.preventDefault();
                             handleAddSubtask(t.id);
@@ -885,17 +987,39 @@ export default function WeddingDetail() {
                         >
                           <input
                             className="input input-sm input-grow"
-                            placeholder="Thêm việc con..."
-                            value={subtaskDraft[t.id] || ''}
-                            onChange={(e) => setSubtaskDraft((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                            placeholder="Thêm việc con mới..."
+                            value={(subtaskDraft[t.id] && subtaskDraft[t.id].title) || ''}
+                            onChange={(e) =>
+                              setSubtaskDraft((prev) => ({
+                                ...prev,
+                                [t.id]: { ...(prev[t.id] || {}), title: e.target.value },
+                              }))
+                            }
+                          />
+                          <input
+                            type="date"
+                            className="input input-sm"
+                            style={{ width: 145 }}
+                            title="Hạn hoàn thành việc con"
+                            value={(subtaskDraft[t.id] && subtaskDraft[t.id].dueDate) || ''}
+                            onChange={(e) =>
+                              setSubtaskDraft((prev) => ({
+                                ...prev,
+                                [t.id]: { ...(prev[t.id] || {}), dueDate: e.target.value },
+                              }))
+                            }
                           />
                           <button
                             type="submit"
                             className="btn btn-secondary btn-sm"
-                            disabled={addingSubtaskFor === t.id || (subtaskDraft[t.id] || '').trim().length < 2}
+                            disabled={
+                              addingSubtaskFor === t.id ||
+                              !((subtaskDraft[t.id] && subtaskDraft[t.id].title) || '').trim() ||
+                              ((subtaskDraft[t.id] && subtaskDraft[t.id].title) || '').trim().length < 2
+                            }
                           >
                             <PlusIcon size={13} />
-                            <span>Thêm</span>
+                            <span>Thêm việc con</span>
                           </button>
                         </form>
                       </div>
